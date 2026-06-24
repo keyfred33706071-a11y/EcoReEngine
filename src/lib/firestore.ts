@@ -799,9 +799,10 @@ export interface RecyclingCenter {
 }
 
 export async function fetchRecyclingCenters(): Promise<RecyclingCenter[]> {
-  const q = query(collection(db, 'recycling_centers'), orderBy('city'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as RecyclingCenter));
+  const snap = await getDocs(collection(db, 'recycling_centers'));
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as RecyclingCenter))
+    .sort((a, b) => a.city.localeCompare(b.city));
 }
 
 export async function addRecyclingCenter(data: Omit<RecyclingCenter, 'id' | 'created_at' | 'updated_at'>) {
