@@ -227,7 +227,7 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
             <span><span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-1" /> EcoTienda</span>
           </div>
           {selected && (
-            <div className="card-hover border-emerald-500/20 mt-3">
+            <div className="bg-slate-900/90 border border-emerald-500/20 rounded-2xl p-5 mt-3">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-bold text-slate-100">{selected.name}</h3>
@@ -286,8 +286,8 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
       ) : (
         <div className="space-y-3">
           {filtered.map(center => (
-            <div key={center.id}
-              className="card-hover border-slate-800/50 overflow-hidden">
+            <div key={center.id} onClick={() => setSelected(selected?.id === center.id ? null : center)}
+              className={`bg-slate-900/90 border rounded-2xl overflow-hidden transition-all cursor-pointer ${selected?.id === center.id ? 'border-emerald-500/40 ring-1 ring-emerald-500/20' : 'border-slate-700/50 hover:border-emerald-500/20'}`}>
               <div className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-lg shrink-0 shadow-lg shadow-emerald-900/30">
