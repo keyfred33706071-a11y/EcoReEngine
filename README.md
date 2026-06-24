@@ -4,7 +4,7 @@
 
 ## 🚀 Características
 
-- **16 proyectos paso a paso** — Guías detalladas con materiales reciclados, herramientas y tips
+- **74 proyectos paso a paso** — Guías detalladas con materiales reciclados, herramientas y tips
 - **Calculadora de resistencias** — Código de colores con visualizador interactivo
 - **Diccionario de componentes** — Referencia rápida de componentes electrónicos
 - **Asistente IA (EcoBot)** — Resuelve dudas técnicas con inteligencia artificial
