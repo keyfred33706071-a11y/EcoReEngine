@@ -2,12 +2,29 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { ArrowLeft, MapPin, Search, Navigation, ExternalLink, Filter, Menu, X, Locate } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchRecyclingCenters, seedRecyclingCenters, RecyclingCenter } from '../lib/firestore';
+import { fetchRecyclingCenters, RecyclingCenter } from '../lib/firestore';
 
 const ACCEPT_FILTERS = ['todos', 'electrónicos', 'baterías', 'pilas', 'celulares', 'computadoras'];
 
 const TYPE_ICONS: Record<string, string> = { centro: '🏭', punto: '📍', tienda: '🏪' };
 const TYPE_LABELS: Record<string, string> = { centro: 'Centro de Acopio', punto: 'Punto Verde', tienda: 'EcoTienda' };
+
+const STATIC_CENTERS: RecyclingCenter[] = [
+  { id: 's1', name: 'EcoCentro Caracas', address: 'Av. Libertador, Edif. Eco, Pb', city: 'Caracas', phone: '0212-555-0101', schedule: 'Lun-Sáb 8:00-17:00', accepts: ['electrónicos', 'baterías', 'pilas', 'celulares', 'computadoras'], lat: 10.4806, lng: -66.9036, type: 'centro' },
+  { id: 's2', name: 'Punto Verde Miranda', address: 'CC Sambil, Nivel PB, Local 15', city: 'Caracas', phone: '0212-555-0202', schedule: 'Lun-Dom 10:00-20:00', accepts: ['pilas', 'baterías', 'celulares'], lat: 10.4964, lng: -66.8512, type: 'punto' },
+  { id: 's3', name: 'ReciclaTech Valencia', address: 'Av. Bolívar Norte, Edif. Techno', city: 'Valencia', phone: '0241-555-0303', schedule: 'Lun-Vie 8:00-16:00', accepts: ['electrónicos', 'computadoras', 'impresoras', 'cables'], lat: 10.1621, lng: -68.0084, type: 'centro' },
+  { id: 's4', name: 'EcoPunto Barquisimeto', address: 'Carrera 19 con Calle 28', city: 'Barquisimeto', phone: '0251-555-0404', schedule: 'Lun-Sáb 9:00-17:00', accepts: ['pilas', 'baterías', 'celulares', 'cargadores'], lat: 10.0679, lng: -69.3461, type: 'punto' },
+  { id: 's5', name: 'Centro de Acopio Maracaibo', address: 'Av. 5 de Julio, Edif. Verde', city: 'Maracaibo', phone: '0261-555-0505', schedule: 'Lun-Vie 8:00-15:00', accepts: ['electrónicos', 'baterías', 'pilas', 'neveras', 'aires'], lat: 10.6548, lng: -71.6516, type: 'centro' },
+  { id: 's6', name: 'Residuos Electrónicos Maturín', address: 'Av. Principal, CC Monagas', city: 'Maturín', phone: '0291-555-0606', schedule: 'Lun-Vie 9:00-16:00', accepts: ['electrónicos', 'computadoras', 'pilas'], lat: 9.7469, lng: -63.1769, type: 'centro' },
+  { id: 's7', name: 'EcoTienda Barcelona', address: 'Av. Pedro María Freites, Local 7', city: 'Barcelona', phone: '0281-555-0707', schedule: 'Lun-Sáb 9:00-18:00', accepts: ['celulares', 'baterías', 'cargadores', 'accesorios'], lat: 10.1347, lng: -64.6856, type: 'tienda' },
+  { id: 's8', name: 'Punto Ecológico Mérida', address: 'Av. 4, Edif. Solar', city: 'Mérida', phone: '0274-555-0808', schedule: 'Lun-Vie 8:00-17:00', accepts: ['pilas', 'baterías', 'electrónicos pequeños'], lat: 8.5925, lng: -71.1433, type: 'punto' },
+  { id: 's9', name: 'Recicla Centro San Cristóbal', address: 'Av. España, Centro Comercial', city: 'San Cristóbal', phone: '0276-555-0909', schedule: 'Lun-Sáb 9:00-17:00', accepts: ['electrónicos', 'computadoras', 'impresoras'], lat: 7.7703, lng: -72.2266, type: 'centro' },
+  { id: 's10', name: 'EcoPunto Puerto La Cruz', address: 'Av. Municipal, Local 3', city: 'Puerto La Cruz', phone: '0281-555-1010', schedule: 'Lun-Sáb 8:00-16:00', accepts: ['pilas', 'baterías', 'celulares'], lat: 10.2056, lng: -64.6285, type: 'punto' },
+  { id: 's11', name: 'Centro de Reciclaje Ciudad Guayana', address: 'Av. Guayana, Zona Industrial', city: 'Ciudad Guayana', phone: '0286-555-1111', schedule: 'Lun-Vie 8:00-15:00', accepts: ['electrónicos', 'baterías', 'pilas', 'metales'], lat: 8.3454, lng: -62.6785, type: 'centro' },
+  { id: 's12', name: 'EcoTienda Cumaná', address: 'Av. Universidad, Local 22', city: 'Cumaná', phone: '0293-555-1212', schedule: 'Lun-Sáb 9:00-18:00', accepts: ['celulares', 'baterías', 'cargadores'], lat: 10.4534, lng: -64.1726, type: 'tienda' },
+  { id: 's13', name: 'Punto Verde Los Teques', address: 'Av. Bermúdez, Edif. Municipal', city: 'Los Teques', phone: '0212-555-1313', schedule: 'Lun-Vie 8:00-16:00', accepts: ['pilas', 'baterías', 'electrónicos pequeños'], lat: 10.3422, lng: -67.0398, type: 'punto' },
+  { id: 's14', name: 'Recicla Falcón Coro', address: 'Calle Zamora, Edif. Ambiental', city: 'Coro', phone: '0268-555-1414', schedule: 'Lun-Vie 9:00-17:00', accepts: ['electrónicos', 'baterías', 'pilas'], lat: 11.4043, lng: -69.6806, type: 'centro' },
+];
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -34,17 +51,12 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
   useEffect(() => {
     (async () => {
       try {
-        let data = await fetchRecyclingCenters();
-        if (data.length === 0) {
-          await seedRecyclingCenters();
-          data = await fetchRecyclingCenters();
-        }
-        setCenters(data);
-      } catch {
-        setCenters([]);
-      } finally {
-        setLoading(false);
-      }
+        const data = await fetchRecyclingCenters();
+        if (data.length > 0) { setCenters(data); setLoading(false); return; }
+      } catch { /* fallback a datos estáticos */ }
+
+      setCenters(STATIC_CENTERS);
+      setLoading(false);
     })();
   }, []);
 

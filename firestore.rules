@@ -188,6 +188,12 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // ─── Centros de reciclaje (mapa) ──────────────────────
+    match /recycling_centers/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasRole(['owner', 'admin']);
+    }
+
     // ─── Solo staff / owner ───────────────────────────────
     match /admin_logs/{id} {
       allow read: if isStaff();
