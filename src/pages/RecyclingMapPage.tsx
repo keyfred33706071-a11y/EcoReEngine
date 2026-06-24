@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { ArrowLeft, MapPin, Search, Navigation, ExternalLink, Filter, Menu, X, Locate } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchRecyclingCenters, RecyclingCenter } from '../lib/firestore';
+import { RecyclingCenter } from '../lib/firestore';
 
 const ACCEPT_FILTERS = ['todos', 'electrónicos', 'baterías', 'pilas', 'celulares', 'computadoras'];
 
@@ -35,8 +35,8 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 }
 
 export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
-  const [centers, setCenters] = useState<RecyclingCenter[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [centers] = useState<RecyclingCenter[]>(STATIC_CENTERS);
+  const [loading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterAccept, setFilterAccept] = useState('todos');
   const [showMenu, setShowMenu] = useState(false);
@@ -47,19 +47,6 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await fetchRecyclingCenters();
-        if (data.length > 0) { if (!cancelled) { setCenters(data); setLoading(false); } return; }
-      } catch { /* fallback a datos estáticos */ }
-
-      if (!cancelled) { setCenters(STATIC_CENTERS); setLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -157,7 +144,7 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
       if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
     }
-  }, [filtered, userLocation, loading]);
+  }, [filtered, userLocation]);
 
   useEffect(() => {
     return () => {
@@ -165,21 +152,6 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
       mapInstance.current = null;
     };
   }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-4 animate-fade-in pb-10">
-        <div className="flex items-center gap-3">
-          {onBack && <button onClick={onBack} className="btn-ghost p-1.5 -ml-1.5"><ArrowLeft className="w-5 h-5" /></button>}
-          <h2 className="text-base font-bold text-slate-100">Mapa de Reciclaje</h2>
-        </div>
-        <div className="card text-center py-16">
-          <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-slate-400">Cargando centros...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4 animate-fade-in pb-10">
