@@ -1,5 +1,6 @@
 import { db, auth } from './firebase';
 import { sanitize } from './sanitize';
+import { IMGBB_KEY } from './env';
 import {
   doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, orderBy, limit, increment, serverTimestamp, Timestamp,
 } from 'firebase/firestore';
@@ -254,8 +255,7 @@ export async function uploadImage(file: File, path: string): Promise<string> {
     reader.readAsDataURL(file);
   });
 
-  const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-  if (!apiKey) throw new Error('Falta VITE_IMGBB_API_KEY en .env');
+  const apiKey = import.meta.env.VITE_IMGBB_API_KEY || IMGBB_KEY;
 
   const formData = new FormData();
   formData.append('key', apiKey);

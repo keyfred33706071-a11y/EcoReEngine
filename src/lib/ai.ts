@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import { GROQ_KEY, OR_KEY } from './env';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
@@ -42,7 +43,7 @@ const VISION_SYSTEM_PROMPT =
   'Eres un experto en electrónica, reciclaje de e-waste e identificación de componentes. Respondes en español.';
 
 export function getApiKey(): string {
-  try { return localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || ''; } catch { return ''; }
+  try { return localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || GROQ_KEY; } catch { return GROQ_KEY; }
 }
 
 export function setApiKey(key: string) {
@@ -201,7 +202,7 @@ export async function sendMessage(
 }
 
 export function getOpenRouterKey(): string {
-  try { return localStorage.getItem('openrouter_api_key') || import.meta.env.VITE_OPENROUTER_API_KEY || ''; } catch { return ''; }
+  try { return localStorage.getItem('openrouter_api_key') || import.meta.env.VITE_OPENROUTER_API_KEY || OR_KEY; } catch { return OR_KEY; }
 }
 
 export function hasOpenRouterKey(): boolean {
