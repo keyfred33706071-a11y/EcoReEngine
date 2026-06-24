@@ -12,6 +12,7 @@
 - **📐 Fórmulas Rápidas** — Ley de Ohm, potencia, resistencias en serie y paralelo
 - **🗺️ Mapa de Reciclaje** — Centros de acopio cercanos con Leaflet + OpenStreetMap, geolocalización, filtros, distancia
 
+
 ### 🔬 Laboratorio de Proyectos
 - **74 proyectos paso a paso** con dificultad (Fácil/Medio/Avanzado), tarjetas visuales y thumbnails
 - Proyectos de **instituciones** con rating de estrellas por usuario
@@ -85,7 +86,6 @@
 - Service Worker (PWA), notificaciones push locales
 - Bloqueo de DevTools y menú contextual
 - Perfil con avatar (cámara, archivo o pegar desde portapapeles)
-
 ## 🛠️ Stack
 
 | Capa | Tecnología |
