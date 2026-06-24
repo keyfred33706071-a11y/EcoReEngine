@@ -30,7 +30,7 @@ export default function ScannerPage({ onBack }: Props) {
     setResult(null);
     setError(null);
     if (!hasOpenRouterKey()) {
-      setError('La clave de OpenRouter para la IA de cámara no está configurada.');
+      setError('Función de análisis con IA no disponible en esta versión. Puedes consultar el diccionario manual de componentes más abajo.');
       setLoading(false);
       return;
     }
@@ -116,7 +116,7 @@ export default function ScannerPage({ onBack }: Props) {
               <div className="mt-3 bg-red-900/30 border border-red-800/30 rounded-xl p-4">
                 <p className="text-sm text-red-300">{error}</p>
                 {!hasOpenRouterKey() && (
-                  <p className="mt-2 text-sm text-slate-400">Configura la variable VITE_OPENROUTER_API_KEY en el .env</p>
+                  <p className="mt-2 text-sm text-slate-400">Análisis con IA no disponible. Consulta la lista de componentes más abajo.</p>
                 )}
               </div>
             )}
@@ -129,7 +129,7 @@ export default function ScannerPage({ onBack }: Props) {
             )}
 
             {!loading && !result && !error && !hasOpenRouterKey() && (
-              <p className="mt-2 text-sm text-slate-400">La clave de OpenRouter para el análisis con IA de cámara no está configurada.</p>
+              <p className="mt-2 text-sm text-slate-400">El análisis con IA por cámara no está disponible. Usa el diccionario de componentes manual más abajo.</p>
             )}
           </div>
         )}

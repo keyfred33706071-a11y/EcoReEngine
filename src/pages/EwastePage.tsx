@@ -116,7 +116,7 @@ export default function EwastePage({ onNavigate }: Props) {
       if (image.dataUrl && hasOpenRouterKey()) {
         analyzeWithAI(image.dataUrl);
       } else if (!hasOpenRouterKey()) {
-        setError('La clave de OpenRouter para la IA de cámara no está configurada.');
+        setError('Identificación por IA no disponible en esta versión.');
       }
     } catch {
       // user cancelled
@@ -191,7 +191,7 @@ export default function EwastePage({ onNavigate }: Props) {
               <div className="mt-3 bg-red-900/30 border border-red-800/30 rounded-xl p-4">
                 <p className="text-sm text-red-300">{error}</p>
                 {!hasOpenRouterKey() && (
-                  <p className="mt-2 text-sm text-slate-400">Configura la variable VITE_OPENROUTER_API_KEY en el .env</p>
+                  <p className="mt-2 text-sm text-slate-400">Identificación por IA no disponible en esta versión.</p>
                 )}
               </div>
             )}
@@ -204,7 +204,7 @@ export default function EwastePage({ onNavigate }: Props) {
             )}
 
             {!analyzing && !aiResult && !error && !hasOpenRouterKey() && (
-              <p className="mt-2 text-sm text-slate-400">La clave de OpenRouter para el análisis con IA de cámara no está configurada.</p>
+              <p className="mt-2 text-sm text-slate-400">Identificación por IA no disponible en esta versión.</p>
             )}
           </div>
         )}
