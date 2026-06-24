@@ -49,15 +49,16 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
   const markersRef = useRef<L.Marker[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const data = await fetchRecyclingCenters();
-        if (data.length > 0) { setCenters(data); setLoading(false); return; }
+        if (data.length > 0) { if (!cancelled) { setCenters(data); setLoading(false); } return; }
       } catch { /* fallback a datos estáticos */ }
 
-      setCenters(STATIC_CENTERS);
-      setLoading(false);
+      if (!cancelled) { setCenters(STATIC_CENTERS); setLoading(false); }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
