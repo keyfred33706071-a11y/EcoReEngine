@@ -30,7 +30,7 @@
 ## 📦 Instalación
 
 ```bash
-git clone https://github.com/tuusuario/ecoreengine.git
+git clone https://github.com/keyfred33706071-a11y/EcoReEngine.git
 cd ecoreengine
 npm install
 npm run dev
