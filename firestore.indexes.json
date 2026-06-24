@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "achievements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "requirement_value", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

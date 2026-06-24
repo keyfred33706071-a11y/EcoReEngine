@@ -1,0 +1,212 @@
+rules_version = '2';
+
+// EcoReEngine — Reglas de seguridad de Firestore
+// Modelo de rol: el rol vive en el documento users/{uid}.role
+// (no en custom claims). Estas reglas leen ese campo con get().
+//
+// Principios:
+//  - NADA es de acceso libre: no hay match /{document=**} comodín.
+//  - Un usuario solo escribe SUS propios datos.
+//  - role / verified / banned NO los puede cambiar el propio usuario:
+//    solo owner/admin (evita que cualquiera se haga "owner" desde la consola).
+//  - Catálogo (componentes, tutoriales, logros) es de solo lectura para
+//    usuarios y solo escribible por staff.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ──────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Lee el rol del documento del usuario actual. 'user' por defecto.
+    function myRole() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user')
+        : 'user';
+    }
+
+    function hasRole(roles) {
+      return myRole() in roles;
+    }
+
+    function isOwner()  { return myRole() == 'owner'; }
+    // Staff = puede moderar comunidad (ocultar/fijar/borrar posts ajenos)
+    function isStaff()  { return myRole() in ['owner', 'admin', 'mod']; }
+
+    function isMine(field) {
+      return isSignedIn() && request.resource.data[field] == request.auth.uid;
+    }
+
+    function ownsExisting(field) {
+      return isSignedIn() && resource.data[field] == request.auth.uid;
+    }
+
+    // Solo cambian las claves indicadas (para likes/contadores).
+    function onlyFields(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // El usuario no puede tocar sus propios campos privilegiados.
+    function privilegedUnchanged() {
+      return request.resource.data.get('role', 'user')     == resource.data.get('role', 'user')
+          && request.resource.data.get('verified', false)  == resource.data.get('verified', false)
+          && request.resource.data.get('banned', false)    == resource.data.get('banned', false);
+    }
+
+    // ─── Perfiles de usuario ──────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      // Al crear su perfil, no puede nacer ya con privilegios.
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.get('role', 'user') == 'user'
+        && request.resource.data.get('verified', false) == false
+        && request.resource.data.get('banned', false) == false;
+
+      // owner/admin editan a cualquiera (roles, bans, verificación).
+      // El propio usuario edita su perfil pero NO sus campos privilegiados.
+      allow update: if hasRole(['owner', 'admin'])
+        || (request.auth.uid == userId && privilegedUnchanged());
+
+      allow delete: if isOwner();
+
+      // Insignias asignadas por staff, visibles para todos.
+      match /badges/{badgeId} {
+        allow read: if isSignedIn();
+        allow write: if hasRole(['owner', 'admin']);
+      }
+    }
+
+    // ─── Catálogo (solo lectura para usuarios) ────────────
+    match /components/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /tutorials/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /achievements/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /admin_projects/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasRole(['owner', 'admin', 'institution']);
+    }
+    match /badges/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasRole(['owner', 'admin']);
+    }
+
+    // ─── Datos propios del usuario ────────────────────────
+    match /tutorial_progress/{id} {
+      allow read: if isSignedIn();
+      allow write: if isMine('user_id');
+    }
+    match /user_components/{id} {
+      allow read: if isSignedIn();
+      allow create: if isMine('user_id');
+      allow delete: if ownsExisting('user_id');
+    }
+    match /user_achievements/{id} {
+      allow read: if isSignedIn();
+      allow create: if isMine('user_id') || isStaff();
+      allow delete: if ownsExisting('user_id') || isStaff();
+    }
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow create: if isMine('user_id');
+      allow update, delete: if ownsExisting('user_id') || isStaff();
+    }
+
+    // ─── Comunidad ────────────────────────────────────────
+    match /community_posts/{postId} {
+      allow read: if isSignedIn();
+      // Staff puede crear posts oficiales (user_id = 'app_ecoreengine').
+      allow create: if isMine('user_id') || isStaff();
+      allow update: if ownsExisting('user_id')
+        || isStaff()
+        || onlyFields(['likes_count', 'comments_count']);
+      allow delete: if ownsExisting('user_id') || isStaff();
+    }
+    match /community_comments/{id} {
+      allow read: if isSignedIn();
+      allow create: if isMine('user_id');
+      allow delete: if ownsExisting('user_id') || isStaff();
+    }
+    match /post_likes/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow delete: if isSignedIn();
+    }
+
+    // ─── Proyectos curados: ratings y comentarios ─────────
+    match /project_ratings/{projectId}/ratings/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /project_comments/{id} {
+      allow read: if isSignedIn();
+      allow create: if isMine('user_id');
+      allow delete: if ownsExisting('user_id') || isStaff();
+    }
+
+    // ─── Nombres de usuario únicos ────────────────────────
+    match /usernames/{username} {
+      allow read: if isSignedIn();
+      allow create: if isMine('user_id');
+      // Solo el dueño del username o staff pueden liberarlo.
+      allow delete: if ownsExisting('user_id') || isStaff();
+    }
+
+    // ─── Configuración / OTA (solo owner) ─────────────────
+    match /app_config/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    // ─── Notificaciones ───────────────────────────────────
+    match /global_notifications/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasRole(['owner', 'admin']);
+    }
+    match /user_notifications/{id} {
+      allow read: if ownsExisting('user_id');
+      allow create: if hasRole(['owner', 'admin']);
+    }
+
+    // ─── Contenido diario (generado vía Cloud Function) ──
+    // La escritura la hace la Cloud Function (dailyContent) con permisos de admin,
+    // o manualmente por el owner. Los usuarios solo leen.
+    match /daily_content/{date} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    // ─── Solo staff / owner ───────────────────────────────
+    match /admin_logs/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+    }
+    match /admin_chat/{id} {
+      allow read, create: if isStaff();
+    }
+    match /client_errors/{id} {
+      allow create: if isSignedIn();
+      allow read: if isOwner();
+    }
+
+    // ─── Imágenes de proyectos estáticos (drag & drop) ────
+    match /project_images/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Cualquier ruta no listada queda DENEGADA por defecto.
+  }
+}

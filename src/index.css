@@ -1,0 +1,597 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { overflow-x: hidden; overscroll-behavior-x: none; }
+  body { overflow-x: hidden; overscroll-behavior-x: none; }
+  ::-webkit-scrollbar:horizontal { display: none; }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #059669 #1e293b;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: #1e293b;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: #059669;
+    border-radius: 3px;
+  }
+  body {
+    @apply bg-slate-950 text-slate-100;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  body.theme-light {
+    @apply bg-slate-100 text-slate-900;
+  }
+
+}
+
+@layer components {
+  .glass {
+    @apply bg-slate-800/60 backdrop-blur-md border border-slate-700/50;
+  }
+  .glass-light {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+  }
+  .card {
+    @apply glass rounded-2xl p-6 transition-all duration-300;
+  }
+  .card-hover {
+    @apply card hover:bg-slate-700/60 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-0.5;
+  }
+  .btn-primary {
+    @apply bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all duration-200 active:scale-95 shadow-lg shadow-emerald-600/25;
+  }
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium px-6 py-2.5 rounded-xl transition-all duration-200 active:scale-95;
+  }
+  .btn-ghost {
+    @apply text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 px-4 py-2 rounded-xl transition-all duration-200;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full;
+  }
+  .badge-emerald {
+    @apply badge bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
+  }
+  .badge-amber {
+    @apply badge bg-amber-500/20 text-amber-400 border border-amber-500/30;
+  }
+  .badge-blue {
+    @apply badge bg-blue-500/20 text-blue-400 border border-blue-500/30;
+  }
+  .badge-red {
+    @apply badge bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+  .input {
+    @apply w-full bg-slate-800/80 border border-slate-700 text-slate-100 rounded-xl px-4 py-3
+    placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50
+    transition-all duration-200;
+  }
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-emerald-400
+    hover:bg-emerald-500/10 transition-all duration-200 font-medium;
+  }
+  .nav-item-active {
+    @apply nav-item text-emerald-400 bg-emerald-500/15 border border-emerald-500/20;
+  }
+  .stat-card {
+    @apply card-hover flex flex-col gap-1;
+  }
+  .section-title {
+    @apply text-2xl font-bold text-slate-100;
+  }
+  .section-subtitle {
+    @apply text-slate-400 text-sm;
+  }
+  .progress-bar {
+    @apply w-full h-2 bg-slate-700 rounded-full overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-emerald-600 to-teal-500 rounded-full transition-all duration-700;
+  }
+  .xp-bar {
+    @apply w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700;
+  }
+  .xp-fill {
+    @apply h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-700;
+  }
+  .difficulty-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  .glow-emerald {
+    box-shadow: 0 0 20px rgba(5, 150, 105, 0.3);
+  }
+  .glow-amber {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  }
+  .hero-text-gradient {
+    @apply bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent;
+  }
+
+  /* Circuit puzzle electricity flow animation */
+  .circuit-wire-powered {
+    stroke-dasharray: 8 6;
+    animation: wire-flow 0.9s linear infinite;
+  }
+}
+
+/* Keyframe for marching ants on powered wires */
+@keyframes wire-flow {
+  from { stroke-dashoffset: 28; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Game theme colors */
+:root {
+  --game-bg: #0f172a;
+  --game-card-bg: rgba(30, 41, 59, 0.6);
+  --game-area-bg: rgba(15, 23, 42, 0.6);
+}
+.light {
+  --game-bg: #f1f5f9;
+  --game-card-bg: rgba(255, 255, 255, 0.85);
+  --game-area-bg: rgba(255, 255, 255, 0.6);
+}
+
+/* Light mode overrides */
+.light body {
+  @apply bg-slate-100 text-slate-900;
+}
+.light {
+  --bg-page: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card-solid: #ffffff;
+  --border-card: rgba(0, 0, 0, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+}
+.light .glass {
+  background: var(--bg-card);
+  border-color: var(--border-card);
+}
+.light .card {
+  background: var(--bg-card);
+  border-color: var(--border-card);
+}
+.light .card-hover {
+  background: var(--bg-card);
+  border-color: var(--border-card);
+}
+.light .card-hover:hover {
+  background: #ffffff;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+.light .bg-slate-950 { background: var(--bg-page); }
+.light .bg-slate-900\/60 { background: rgba(255, 255, 255, 0.7); }
+.light .bg-slate-800\/60 { background: rgba(255, 255, 255, 0.75); }
+.light .bg-slate-800\/80 { background: rgba(255, 255, 255, 0.8); }
+.light .bg-slate-800 { background: #f8fafc; }
+.light .bg-slate-900 { background: #ffffff; }
+.light .bg-slate-900\/60 { background: rgba(255, 255, 255, 0.6); }
+.light .bg-slate-900\/95 { background: rgba(255, 255, 255, 0.95); }
+.light .border-slate-700\/50 { border-color: rgba(0, 0, 0, 0.1); }
+.light .border-slate-700 { border-color: rgba(0, 0, 0, 0.15); }
+.light .border-slate-800 { border-color: rgba(0, 0, 0, 0.1); }
+.light .border-slate-800\/80 { border-color: rgba(0, 0, 0, 0.1); }
+.light .text-slate-100 { color: #0f172a; }
+.light .text-slate-200 { color: #1e293b; }
+.light .text-slate-300 { color: #334155; }
+.light .text-slate-400 { color: #64748b; }
+.light .text-slate-500 { color: #94a3b8; }
+.light .placeholder-slate-500::placeholder { color: #cbd5e1; }
+.light .btn-secondary {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.light .btn-secondary:hover {
+  background: #cbd5e1;
+}
+.light .input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+.light .input::placeholder {
+  color: #94a3b8;
+}
+.light .nav-item {
+  color: #64748b;
+}
+.light .nav-item:hover {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.08);
+}
+.light .nav-item-active {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+  border-color: rgba(5, 150, 105, 0.2);
+}
+.light .section-title {
+  color: #0f172a;
+}
+.light .bg-slate-700\/50 { background: rgba(255, 255, 255, 0.7); }
+.light .bg-slate-700\/60 { background: rgba(255, 255, 255, 0.75); }
+.light .bg-slate-800\/30 { background: rgba(255, 255, 255, 0.85); }
+.light .bg-slate-800\/40 { background: rgba(255, 255, 255, 0.82); }
+.light .bg-slate-800\/50 { background: rgba(255, 255, 255, 0.78); }
+.light .bg-slate-900\/10 { background: rgba(255, 255, 255, 0.95); }
+.light .bg-slate-900\/30 { background: rgba(255, 255, 255, 0.9); }
+.light .bg-slate-900\/40 { background: rgba(255, 255, 255, 0.85); }
+.light .bg-slate-900\/50 { background: rgba(255, 255, 255, 0.8); }
+.light .bg-slate-900\/80 { background: rgba(255, 255, 255, 0.65); }
+.light .border-slate-700\/30 { border-color: rgba(0, 0, 0, 0.08); }
+.light .border-slate-700\/40 { border-color: rgba(0, 0, 0, 0.09); }
+.light .border-slate-600\/40 { border-color: rgba(0, 0, 0, 0.12); }
+.light .border-slate-600\/50 { border-color: rgba(0, 0, 0, 0.14); }
+.light .border-slate-700\/15 { border-color: rgba(0, 0, 0, 0.06); }
+.light .text-slate-600 { color: #94a3b8; }
+.light .section-subtitle {
+  color: #64748b;
+}
+.light .bg-emerald-900\/30 {
+  background: rgba(5, 150, 105, 0.08);
+}
+.light .bg-emerald-500\/10 {
+  background: rgba(5, 150, 105, 0.08);
+}
+.light .bg-slate-950\/40 {
+  background: rgba(0, 0, 0, 0.3);
+}
+.light .bg-emerald-950\/40 {
+  background: rgba(5, 150, 105, 0.1);
+}
+.light .bg-slate-950\/90 {
+  background: rgba(0, 0, 0, 0.7);
+}
+.light .bg-slate-950\/50 {
+  background: rgba(0, 0, 0, 0.4);
+}
+.light .bg-red-500\/5 {
+  background: rgba(239, 68, 68, 0.05);
+}
+.light .text-red-400 {
+  color: #dc2626;
+}
+.light .bg-amber-900\/30 {
+  background: rgba(245, 158, 11, 0.1);
+}
+.light .text-amber-400 {
+  color: #d97706;
+}
+.light .progress-bar {
+  background: #e2e8f0;
+}
+.light .xp-bar {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+.light aside.bg-slate-900\/95 {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+.light header.bg-slate-950\/90 {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.light header input {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+.light header .bg-slate-800\/80 {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+.light header button.hover\\:bg-slate-800:hover {
+  background: #e2e8f0;
+}
+.light .hover\\:bg-slate-800:hover {
+  background: #e2e8f0;
+}
+.light .hover\\:text-slate-200:hover {
+  color: #1e293b;
+}
+.light .hover\\:text-slate-100:hover {
+  color: #0f172a;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ─── Dashboard card animations ─── */
+@keyframes stat-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(var(--stat-glow-r, 59), var(--stat-glow-g, 130), var(--stat-glow-b, 246), 0.15); }
+  50% { box-shadow: 0 0 20px rgba(var(--stat-glow-r, 59), var(--stat-glow-g, 130), var(--stat-glow-b, 246), 0.3); }
+}
+@keyframes stat-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stat-card {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.stat-card:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+.stat-card .stat-icon {
+  transition: all 0.3s ease;
+}
+.stat-card:hover .stat-icon {
+  transform: scale(1.15) rotate(-3deg);
+}
+.stat-card .stat-value {
+  animation: count-up 0.5s ease-out forwards;
+  opacity: 0;
+}
+.stat-card:nth-child(1) .stat-value { animation-delay: 0.05s; }
+.stat-card:nth-child(2) .stat-value { animation-delay: 0.1s; }
+.stat-card:nth-child(3) .stat-value { animation-delay: 0.15s; }
+.stat-card:nth-child(4) .stat-value { animation-delay: 0.2s; }
+.stat-card:nth-child(5) .stat-value { animation-delay: 0.25s; }
+.stat-card:nth-child(6) .stat-value { animation-delay: 0.3s; }
+.stat-card:nth-child(7) .stat-value { animation-delay: 0.35s; }
+.stat-card:nth-child(8) .stat-value { animation-delay: 0.4s; }
+
+/* F12 mobile view toggle */
+body.mobile-view {
+  max-width: 430px !important;
+  margin: 0 auto !important;
+  min-height: 100vh !important;
+  box-shadow: 0 0 0 1px #334155;
+}
+body.mobile-view .lg\:ml-64 { margin-left: 0 !important; }
+body.mobile-view .lg\:hidden { display: flex !important; }
+body.mobile-view .lg\:block { display: none !important; }
+body.mobile-view .lg\:px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+/* Game screen shake */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-4px); }
+  30%, 70% { transform: translateX(4px); }
+}
+.animate-shake { animation: shake 0.4s ease-in-out; }
+
+/* Game score pop */
+@keyframes score-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-score-pop { animation: score-pop 0.4s ease-out forwards; }
+
+/* Item glow pulse */
+@keyframes item-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(5,150,105,0.3)); }
+  50% { filter: drop-shadow(0 0 8px rgba(5,150,105,0.6)); }
+}
+.animate-item-glow { animation: item-glow 2s ease-in-out infinite; }
+
+/* Coach de hitos del juego */
+@keyframes coachPop {
+  0%   { opacity: 0; transform: scale(0.6) translateY(20px); }
+  15%  { opacity: 1; transform: scale(1.05) translateY(0); }
+  25%  { transform: scale(1) translateY(0); }
+  85%  { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.95) translateY(-10px); }
+}
+.coach-pop { animation: coachPop 3s ease-in-out forwards; }
+
+.theme-light .card,
+.theme-light .glass,
+.theme-light .input {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #1e293b !important;
+}
+.theme-light body,
+.theme-light .bg-slate-950,
+.theme-light .bg-slate-900,
+.theme-light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+}
+.theme-light .text-slate-100,
+.theme-light .text-slate-200,
+.theme-light .text-slate-300 {
+  color: #1e293b !important;
+}
+.theme-light .text-slate-400,
+.theme-light .text-slate-500 {
+  color: #475569 !important;
+}
+
+/* Minimum font size for readability on mobile */
+@media (max-width: 640px) {
+  .text-\[10px\] { font-size: 11px !important; }
+  .text-\[11px\] { font-size: 12px !important; }
+  button, .btn, .btn-ghost { min-height: 44px; }
+  input, select, textarea { font-size: 16px !important; }
+}
+
+/* ─── Page transition animations ─── */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes page-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(0.97); }
+}
+.animate-page-enter { animation: page-enter 0.3s ease-out forwards; }
+.animate-page-exit { animation: page-exit 0.2s ease-in forwards; }
+
+/* Stagger children animation */
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger > * { animation: stagger-in 0.3s ease-out forwards; opacity: 0; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.05s; }
+.stagger > *:nth-child(3) { animation-delay: 0.08s; }
+.stagger > *:nth-child(4) { animation-delay: 0.11s; }
+.stagger > *:nth-child(5) { animation-delay: 0.14s; }
+.stagger > *:nth-child(6) { animation-delay: 0.17s; }
+.stagger > *:nth-child(7) { animation-delay: 0.2s; }
+.stagger > *:nth-child(8) { animation-delay: 0.23s; }
+.stagger > *:nth-child(9) { animation-delay: 0.26s; }
+.stagger > *:nth-child(10) { animation-delay: 0.29s; }
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up-fade { animation: slide-up-fade 0.4s ease-out forwards; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
+
+/* Achievement unlock animation */
+@keyframes achievement-unlock {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-achievement-unlock {
+  animation: achievement-unlock 0.5s ease-out;
+}
+
+/* Touch-friendly targets */
+@media (max-width: 640px) {
+  button, 
+  .btn, 
+  .btn-ghost,
+  [role="button"],
+  .cursor-pointer {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  a, button, .cursor-pointer {
+    min-width: 44px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ESTILO iPHONE (iOS) — tema claro refinado
+   Se aplica cuando <body> tiene la clase .theme-light
+   ═══════════════════════════════════════════════════════════ */
+
+/* Tipografía del sistema de Apple (SF Pro) — en ambos temas */
+body, button, input, textarea, select {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', system-ui, 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fondo agrupado de iOS (systemGroupedBackground) */
+.theme-light body,
+.theme-light .bg-slate-950,
+.theme-light .bg-slate-900,
+.theme-light .bg-slate-800 {
+  background-color: #f2f2f7 !important;
+}
+
+/* Tarjetas blancas con esquinas redondeadas iOS y sombra suave */
+.theme-light .card,
+.theme-light .glass,
+.theme-light .stat-card,
+.theme-light .card-hover {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 18px rgba(0, 0, 0, 0.05) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Campos de texto estilo iOS */
+.theme-light .input,
+.theme-light input,
+.theme-light textarea {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 0.875rem !important;
+  color: #1c1c1e !important;
+}
+
+/* Texto: negro iOS + grises del sistema */
+.theme-light .text-slate-100,
+.theme-light .text-slate-200,
+.theme-light .text-slate-300 { color: #1c1c1e !important; }
+.theme-light .text-slate-400,
+.theme-light .text-slate-500,
+.theme-light .text-slate-600 { color: #8e8e93 !important; }
+
+/* Header y barra lateral translúcidos (frosted glass de iOS) */
+.theme-light header,
+.theme-light aside {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Barra de pestañas inferior estilo iOS */
+.theme-light .fixed.bottom-0 {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.07) !important;
+}
+
+/* Navegación activa con acento verde iOS */
+.theme-light .nav-item-active {
+  background-color: rgba(5, 150, 105, 0.12) !important;
+  color: #059669 !important;
+  border-color: transparent !important;
+}
+
+/* Botones tipo "pastilla" (pill) de iOS */
+.theme-light .btn-primary {
+  border-radius: 9999px !important;
+  box-shadow: 0 2px 10px rgba(5, 150, 105, 0.25) !important;
+}
+.theme-light .btn-secondary {
+  background-color: rgba(120, 120, 128, 0.12) !important;
+  color: #1c1c1e !important;
+  border-radius: 9999px !important;
+}
+
+/* Image fade-in on load */
+@keyframes img-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-img-fade { animation: img-fade-in 0.35s ease-out; }
+
+/* En modo claro, sin brillos neón (no es estética iOS) */
+.theme-light .glow-emerald,
+.theme-light .glow-amber { box-shadow: none !important; }

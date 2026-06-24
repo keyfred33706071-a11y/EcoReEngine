@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// EcoReEngine — Firebase Storage.
+// La app sube imágenes a ImgBB (ver src/lib/firestore.ts uploadImage),
+// no a Firebase Storage. Por seguridad denegamos todo por defecto.
+// Si en el futuro usas Storage, abre rutas concretas con auth.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

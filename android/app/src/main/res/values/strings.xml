@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EcoReEngine</string>
+    <string name="title_activity_main">EcoReEngine</string>
+    <string name="package_name">com.ecoreengine.app</string>
+    <string name="custom_url_scheme">com.ecoreengine.app</string>
+</resources>

@@ -1,0 +1,13 @@
+{
+  "name": "EcoReEngine",
+  "short_name": "EcoReEngine",
+  "description": "Reciclaje electrónico, upcycling y aprendizaje técnico",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#10b981",
+  "icons": [
+    { "src": "/logo/logo.jpeg", "sizes": "192x192", "type": "image/jpeg" },
+    { "src": "/logo/logo.jpeg", "sizes": "512x512", "type": "image/jpeg" }
+  ]
+}

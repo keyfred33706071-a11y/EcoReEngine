@@ -1,0 +1,13 @@
+{
+  "name": "ecoreengine-functions",
+  "description": "Cloud Functions: proxy seguro para IA (Groq/OpenRouter) e imágenes (ImgBB)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.0"
+  }
+}
