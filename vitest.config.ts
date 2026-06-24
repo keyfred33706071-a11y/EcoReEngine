@@ -7,7 +7,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
-      exclude: ['src/lib/firebase.ts', 'src/lib/supabase.ts'],
+      exclude: ['src/lib/firebase.ts'],
     },
   },
 });

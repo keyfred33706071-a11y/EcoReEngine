@@ -782,6 +782,74 @@ export async function fetchGlobalNotificationsForUser() {
   }));
 }
 
+// ─── Recycling Centers ─────────────────────────────────
+export interface RecyclingCenter {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  phone?: string;
+  schedule?: string;
+  accepts: string[];
+  lat: number;
+  lng: number;
+  type: 'centro' | 'punto' | 'tienda';
+  created_at?: Timestamp;
+  updated_at?: Timestamp;
+}
+
+export async function fetchRecyclingCenters(): Promise<RecyclingCenter[]> {
+  const q = query(collection(db, 'recycling_centers'), orderBy('city'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as RecyclingCenter));
+}
+
+export async function addRecyclingCenter(data: Omit<RecyclingCenter, 'id' | 'created_at' | 'updated_at'>) {
+  const docRef = await addDoc(collection(db, 'recycling_centers'), {
+    ...data,
+    created_at: serverTimestamp(),
+    updated_at: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+export async function updateRecyclingCenter(id: string, data: Partial<RecyclingCenter>) {
+  await updateDoc(doc(db, 'recycling_centers', id), { ...data, updated_at: serverTimestamp() });
+}
+
+export async function deleteRecyclingCenter(id: string) {
+  await deleteDoc(doc(db, 'recycling_centers', id));
+}
+
+export async function seedRecyclingCenters(): Promise<number> {
+  const existing = await fetchRecyclingCenters();
+  if (existing.length > 0) return 0;
+
+  const centers = [
+    { name: 'EcoCentro Caracas', address: 'Av. Libertador, Edif. Eco, Pb', city: 'Caracas', phone: '0212-555-0101', schedule: 'Lun-Sáb 8:00-17:00', accepts: ['electrónicos', 'baterías', 'pilas', 'celulares', 'computadoras'], lat: 10.4806, lng: -66.9036, type: 'centro' as const },
+    { name: 'Punto Verde Miranda', address: 'CC Sambil, Nivel PB, Local 15', city: 'Caracas', phone: '0212-555-0202', schedule: 'Lun-Dom 10:00-20:00', accepts: ['pilas', 'baterías', 'celulares'], lat: 10.4964, lng: -66.8512, type: 'punto' as const },
+    { name: 'ReciclaTech Valencia', address: 'Av. Bolívar Norte, Edif. Techno', city: 'Valencia', phone: '0241-555-0303', schedule: 'Lun-Vie 8:00-16:00', accepts: ['electrónicos', 'computadoras', 'impresoras', 'cables'], lat: 10.1621, lng: -68.0084, type: 'centro' as const },
+    { name: 'EcoPunto Barquisimeto', address: 'Carrera 19 con Calle 28', city: 'Barquisimeto', phone: '0251-555-0404', schedule: 'Lun-Sáb 9:00-17:00', accepts: ['pilas', 'baterías', 'celulares', 'cargadores'], lat: 10.0679, lng: -69.3461, type: 'punto' as const },
+    { name: 'Centro de Acopio Maracaibo', address: 'Av. 5 de Julio, Edif. Verde', city: 'Maracaibo', phone: '0261-555-0505', schedule: 'Lun-Vie 8:00-15:00', accepts: ['electrónicos', 'baterías', 'pilas', 'neveras', 'aires'], lat: 10.6548, lng: -71.6516, type: 'centro' as const },
+    { name: 'Residuos Electrónicos Maturín', address: 'Av. Principal, CC Monagas', city: 'Maturín', phone: '0291-555-0606', schedule: 'Lun-Vie 9:00-16:00', accepts: ['electrónicos', 'computadoras', 'pilas'], lat: 9.7469, lng: -63.1769, type: 'centro' as const },
+    { name: 'EcoTienda Barcelona', address: 'Av. Pedro María Freites, Local 7', city: 'Barcelona', phone: '0281-555-0707', schedule: 'Lun-Sáb 9:00-18:00', accepts: ['celulares', 'baterías', 'cargadores', 'accesorios'], lat: 10.1347, lng: -64.6856, type: 'tienda' as const },
+    { name: 'Punto Ecológico Mérida', address: 'Av. 4, Edif. Solar', city: 'Mérida', phone: '0274-555-0808', schedule: 'Lun-Vie 8:00-17:00', accepts: ['pilas', 'baterías', 'electrónicos pequeños'], lat: 8.5925, lng: -71.1433, type: 'punto' as const },
+    { name: 'Recicla Centro San Cristóbal', address: 'Av. España, Centro Comercial', city: 'San Cristóbal', phone: '0276-555-0909', schedule: 'Lun-Sáb 9:00-17:00', accepts: ['electrónicos', 'computadoras', 'impresoras'], lat: 7.7703, lng: -72.2266, type: 'centro' as const },
+    { name: 'EcoPunto Puerto La Cruz', address: 'Av. Municipal, Local 3', city: 'Puerto La Cruz', phone: '0281-555-1010', schedule: 'Lun-Sáb 8:00-16:00', accepts: ['pilas', 'baterías', 'celulares'], lat: 10.2056, lng: -64.6285, type: 'punto' as const },
+    { name: 'Centro de Reciclaje Ciudad Guayana', address: 'Av. Guayana, Zona Industrial', city: 'Ciudad Guayana', phone: '0286-555-1111', schedule: 'Lun-Vie 8:00-15:00', accepts: ['electrónicos', 'baterías', 'pilas', 'metales'], lat: 8.3454, lng: -62.6785, type: 'centro' as const },
+    { name: 'EcoTienda Cumaná', address: 'Av. Universidad, Local 22', city: 'Cumaná', phone: '0293-555-1212', schedule: 'Lun-Sáb 9:00-18:00', accepts: ['celulares', 'baterías', 'cargadores'], lat: 10.4534, lng: -64.1726, type: 'tienda' as const },
+    { name: 'Punto Verde Los Teques', address: 'Av. Bermúdez, Edif. Municipal', city: 'Los Teques', phone: '0212-555-1313', schedule: 'Lun-Vie 8:00-16:00', accepts: ['pilas', 'baterías', 'electrónicos pequeños'], lat: 10.3422, lng: -67.0398, type: 'punto' as const },
+    { name: 'Recicla Falcón Coro', address: 'Calle Zamora, Edif. Ambiental', city: 'Coro', phone: '0268-555-1414', schedule: 'Lun-Vie 9:00-17:00', accepts: ['electrónicos', 'baterías', 'pilas'], lat: 11.4043, lng: -69.6806, type: 'centro' as const },
+  ];
+
+  let count = 0;
+  for (const c of centers) {
+    await addRecyclingCenter(c);
+    count++;
+  }
+  return count;
+}
+
 // ─── App Post in Community (EcoReEngine official) ──────
 export async function createAppPost(title: string, content: string, type: CommunityPost['type'], images: string[] = []) {
   const docRef = await addDoc(collection(db, 'community_posts'), {
