@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { ArrowLeft, MapPin, Search, Navigation, ExternalLink, Filter, Menu, X, Locate } from 'lucide-react';
+import { ArrowLeft, MapPin, Search, Navigation, Filter, Menu, X, Locate } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RecyclingCenter } from '../lib/firestore';
@@ -284,33 +284,68 @@ export default function RecyclingMapPage({ onBack }: { onBack?: () => void }) {
           )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filtered.map(center => (
-            <div key={center.id} onClick={() => setSelected(selected?.id === center.id ? null : center)}
-              className={`card-hover flex items-start gap-3 cursor-pointer ${selected?.id === center.id ? 'ring-1 ring-emerald-500/30' : ''}`}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-lg shrink-0">
-                {TYPE_ICONS[center.type]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-100">{center.name}</p>
-                <p className="text-xs text-slate-400 truncate flex items-center gap-1">
-                  {userLocation && (
-                    <span className="text-emerald-400 font-medium">{haversineKm(userLocation.lat, userLocation.lng, center.lat, center.lng).toFixed(1)} km</span>
-                  )}
-                  {center.city}
-                </p>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {center.accepts.slice(0, 3).map(a => (
-                    <span key={a} className="text-[9px] text-emerald-500/80 bg-emerald-500/8 px-1.5 py-0.5 rounded">{a}</span>
+            <div key={center.id}
+              className="card-hover border-slate-800/50 overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center text-lg shrink-0 shadow-lg shadow-emerald-900/30">
+                    {TYPE_ICONS[center.type]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-bold text-slate-100 leading-tight">{center.name}</p>
+                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-800/80 px-2 py-0.5 rounded-full whitespace-nowrap">{TYPE_LABELS[center.type]}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <p className="text-xs text-slate-400 truncate">{center.address}, {center.city}</p>
+                    </div>
+                    {userLocation && (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Locate className="w-3 h-3 text-amber-400 shrink-0" />
+                        <p className="text-[11px] text-amber-400 font-medium">{haversineKm(userLocation.lat, userLocation.lng, center.lat, center.lng).toFixed(1)} km</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {center.accepts.map(a => (
+                    <span key={a} className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">{a}</span>
                   ))}
-                  {center.accepts.length > 3 && (
-                    <span className="text-[9px] text-slate-500">+{center.accepts.length - 3}</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-slate-400">
+                  {center.phone && (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                      {center.phone}
+                    </span>
+                  )}
+                  {center.schedule && (
+                    <span className="flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {center.schedule}
+                    </span>
                   )}
                 </div>
               </div>
-              <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                <span className="text-[10px] text-slate-500">{center.schedule?.split(' ')[0] || ''}</span>
-                <ExternalLink className="w-4 h-4 text-slate-500" />
+
+              <div className="flex border-t border-slate-800/50">
+                <a href={`https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-400 py-2.5 hover:bg-emerald-500/5 transition-colors">
+                  <Navigation className="w-3.5 h-3.5" /> Cómo llegar
+                </a>
+                {center.phone && (
+                  <a href={`tel:${center.phone}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-300 py-2.5 hover:bg-slate-800/30 transition-colors border-l border-slate-800/50">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                    Llamar
+                  </a>
+                )}
               </div>
             </div>
           ))}
