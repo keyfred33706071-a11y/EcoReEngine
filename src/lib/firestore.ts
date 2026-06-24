@@ -913,16 +913,28 @@ export interface AppConfig {
 export async function fetchAppConfig(): Promise<AppConfig | null> {
   try {
     const snap = await getDoc(doc(db, 'app_config', 'global'));
-    return snap.exists() ? (snap.data() as AppConfig) : null;
+    const annSnap = await getDoc(doc(db, 'global_notifications', 'announcement'));
+    const base = snap.exists() ? (snap.data() as AppConfig) : {} as AppConfig;
+    if (annSnap.exists()) {
+      const d = annSnap.data();
+      base.announcement = d.message || '';
+      base.announcement_enabled = d.enabled ?? false;
+      base.updated_at = d.updated_at || '';
+      base.updated_by = d.updated_by || '';
+    }
+    return base;
   } catch { return null; }
 }
 
 export async function setAppAnnouncement(text: string, enabled: boolean, userId: string) {
-  await setDoc(doc(db, 'app_config', 'global'), {
-    announcement: text,
-    announcement_enabled: enabled,
+  await setDoc(doc(db, 'global_notifications', 'announcement'), {
+    title: 'Comunicado Global',
+    message: text,
+    enabled,
+    type: 'announcement',
     updated_at: new Date().toISOString(),
     updated_by: userId,
+    created_at: new Date().toISOString(),
   }, { merge: true });
 }
 
