@@ -209,30 +209,15 @@ export function hasOpenRouterKey(): boolean {
   return usingProxy() || !!getOpenRouterKey();
 }
 
-export async function sendVisionMessage(
-  imageDataUrl: string,
-  prompt: string,
-  signal?: AbortSignal,
+async function visionApiCall(
+  endpoint: string, headers: Record<string, string>, model: string,
+  imageDataUrl: string, prompt: string, signal?: AbortSignal,
 ): Promise<string> {
-  if (usingProxy()) {
-    const res = await fetchWithTimeout(`${FUNCTIONS_BASE}/vision`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-      body: JSON.stringify({ imageDataUrl, prompt }),
-    }, TIMEOUT_MS, signal);
-    if (!res.ok) throw new Error(`VISION_ERROR: ${res.status} ${await res.text()}`);
-    const data = await res.json();
-    return data.choices[0].message.content;
-  }
-
-  const apiKey = getOpenRouterKey();
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY_NO_SET');
-
-  const res = await fetchWithTimeout(OPENROUTER_ENDPOINT, {
+  const res = await fetchWithTimeout(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({
-      model: 'nvidia/nemotron-nano-12b-v2-vl:free',
+      model,
       messages: [
         { role: 'system', content: VISION_SYSTEM_PROMPT },
         { role: 'user', content: [
@@ -244,8 +229,30 @@ export async function sendVisionMessage(
       max_tokens: 1024,
     }),
   }, TIMEOUT_MS, signal);
-
   if (!res.ok) throw new Error(`VISION_ERROR: ${res.status} ${await res.text()}`);
   const data = await res.json();
   return data.choices[0].message.content;
+}
+
+export async function sendVisionMessage(
+  imageDataUrl: string,
+  prompt: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  if (usingProxy()) {
+    return visionApiCall(`${FUNCTIONS_BASE}/vision`, await authHeader(), '', imageDataUrl, prompt, signal);
+  }
+
+  // 1. Groq (vision model, key tiene créditos)
+  const groqKey = getApiKey();
+  if (groqKey) {
+    try {
+      return await visionApiCall(GROQ_ENDPOINT, { Authorization: `Bearer ${groqKey}` }, 'llama-3.2-11b-vision-preview', imageDataUrl, prompt, signal);
+    } catch { /* fallback a OpenRouter */ }
+  }
+
+  // 2. OpenRouter
+  const orKey = getOpenRouterKey();
+  if (!orKey) throw new Error('OPENROUTER_API_KEY_NO_SET');
+  return visionApiCall(OPENROUTER_ENDPOINT, { Authorization: `Bearer ${orKey}` }, 'nvidia/nemotron-nano-12b-v2-vl:free', imageDataUrl, prompt, signal);
 }
