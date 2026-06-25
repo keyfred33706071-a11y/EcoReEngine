@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Camera, CameraResultType, CameraDirection } from '@capacitor/camera';
 import { sendVisionMessage, hasOpenRouterKey } from '../lib/ai';
 
@@ -46,6 +46,8 @@ export default function ScannerPage({ onBack }: Props) {
     setLoading(false);
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const takePhoto = async () => {
     try {
       const photo = await Camera.getPhoto({
@@ -64,6 +66,20 @@ export default function ScannerPage({ onBack }: Props) {
     } catch {
       // user cancelled
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setImage(dataUrl);
+      setResult(null);
+      setError(null);
+      if (hasOpenRouterKey()) analyze(dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -100,6 +116,21 @@ export default function ScannerPage({ onBack }: Props) {
           </svg>
           Abrir cámara
         </button>
+
+        <div className="flex items-center gap-3 my-3">
+          <div className="flex-1 h-px bg-slate-700/50" />
+          <span className="text-xs text-slate-500">o</span>
+          <div className="flex-1 h-px bg-slate-700/50" />
+        </div>
+
+        <button onClick={() => fileInputRef.current?.click()}
+          className="w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          Subir imagen
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
 
         {image && (
           <div className="mt-4">
