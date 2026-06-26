@@ -519,6 +519,10 @@ export async function setUserRole(userId: string, role: UserRole) {
 }
 
 export async function deletePost(postId: string) {
+  await updateDoc(doc(db, 'community_posts', postId), { hidden: true, deleted_at: new Date().toISOString() });
+}
+
+export async function permanentDeletePost(postId: string) {
   await deleteDoc(doc(db, 'community_posts', postId));
 }
 

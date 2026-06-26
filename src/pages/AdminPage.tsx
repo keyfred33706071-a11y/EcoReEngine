@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, Search, ShieldCheck, Shield, ShieldX, Crown, ChevronDown, ChevronUp, Edit3, Trash2, MessageSquare, Users, BarChart3, Megaphone, Calendar, Hash, Pin, PinOff, Download, Copy, Clock, Activity, Menu, X, Plus, Save, Gavel, MessageCircle, Bell, Send, Image as ImageIcon, Globe, BookOpen, AlertTriangle, Smartphone, Zap, Star, UserCheck, EyeOff, RefreshCw, UserPlus, Building2 } from 'lucide-react';
 import { sanitize } from '../lib/sanitize';
-import { UserProfile, UserRole, listAllUsers, setUserVerified, setUserRole, deletePost, deleteComment, fetchPosts, fetchComments, CommunityPost, fetchAppConfig, setAppAnnouncement, AppConfig, togglePostPinned, searchUserById, banUser, unbanUser, fetchAdminProjects, createAdminProject, updateAdminProject, deleteAdminProject, AdminProject, sendAdminChatMessage, fetchAdminChatMessages, AdminChatMessage, sendGlobalNotification, fetchGlobalNotifications, GlobalNotification, sendDirectNotification, createAppPost, fetchAppUpdate, setAppUpdate, AppUpdate, fetchAdminLogs, hidePost, updateAppConfig, uploadImage, invalidateCache, DictionaryEntry, fetchDictionaryEntries, createDictionaryEntry, updateDictionaryEntry, deleteDictionaryEntry } from '../lib/firestore';
+import { UserProfile, UserRole, listAllUsers, setUserVerified, setUserRole, deletePost, permanentDeletePost, deleteComment, fetchPosts, fetchAllPosts, fetchComments, CommunityPost, fetchAppConfig, setAppAnnouncement, AppConfig, togglePostPinned, searchUserById, banUser, unbanUser, fetchAdminProjects, createAdminProject, updateAdminProject, deleteAdminProject, AdminProject, sendAdminChatMessage, fetchAdminChatMessages, AdminChatMessage, sendGlobalNotification, fetchGlobalNotifications, GlobalNotification, sendDirectNotification, createAppPost, fetchAppUpdate, setAppUpdate, AppUpdate, fetchAdminLogs, hidePost, unhidePost, updateAppConfig, uploadImage, invalidateCache, DictionaryEntry, fetchDictionaryEntries, createDictionaryEntry, updateDictionaryEntry, deleteDictionaryEntry } from '../lib/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import VerifiedBadge from '../components/VerifiedBadge';
@@ -141,7 +141,7 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
   }
   async function loadPosts() {
     setLoadingPosts(true);
-    try { setPosts(await fetchPosts()); } catch {}
+    try { setPosts(await fetchAllPosts()); } catch {}
     setLoadingPosts(false);
   }
   async function loadAdminProjects() {
@@ -275,11 +275,19 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
 
   // ─── Posts logic ───
   async function handleDeletePost(postId: string) {
-    if (!confirm('¿Eliminar este post de la comunidad?')) return;
-    try { await deletePost(postId); setActionMsg('Post eliminado'); loadPosts(); } catch { setActionMsg('Error'); }
+    if (!confirm('¿Mover este post a la papelera? Se puede recuperar después.')) return;
+    try { await deletePost(postId); setActionMsg('Post movido a papelera'); loadPosts(); } catch { setActionMsg('Error'); }
+  }
+  async function handlePermanentDelete(postId: string) {
+    if (!confirm('⚠️ ¿Eliminar permanentemente? Esta acción NO se puede deshacer.')) return;
+    if (!confirm('¿Estás seguro? El post se borrará para siempre.')) return;
+    try { await permanentDeletePost(postId); setActionMsg('Post eliminado permanentemente'); loadPosts(); } catch { setActionMsg('Error'); }
   }
   async function handleHidePost(postId: string) {
     try { await hidePost(postId); setActionMsg('Post ocultado'); loadPosts(); } catch { setActionMsg('Error'); }
+  }
+  async function handleUnhidePost(postId: string) {
+    try { await unhidePost(postId); setActionMsg('Post restaurado'); loadPosts(); } catch { setActionMsg('Error'); }
   }
   async function handleTogglePin(postId: string, current: boolean) {
     try { await togglePostPinned(postId, !current); setActionMsg(current ? 'Post desanclado' : 'Post anclado'); loadPosts(); } catch { setActionMsg('Error'); }
@@ -787,7 +795,7 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
             sortedPosts.map(p => {
               const isPostExpanded = expandedPostId === p.id;
               return (
-                <div key={p.id} className={`p-3 rounded-xl ${p.pinned ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-slate-800/30 border border-slate-700/30'}`}>
+                <div key={p.id} className={`p-3 rounded-xl border ${p.hidden ? 'bg-red-900/10 border-red-800/30' : p.pinned ? 'bg-amber-500/10 border-amber-500/20' : 'bg-slate-800/30 border-slate-700/30'}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-100 truncate flex items-center gap-1.5">
@@ -803,22 +811,39 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
-                      <button onClick={() => handleTogglePin(p.id, !!p.pinned)} aria-label="Fijar"
-                        className={`p-2 rounded-lg transition-colors ${p.pinned ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-500 hover:text-slate-300'}`}>
-                        {p.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
-                      </button>
+                      {!p.hidden && (
+                        <button onClick={() => handleTogglePin(p.id, !!p.pinned)} aria-label="Fijar"
+                          className={`p-2 rounded-lg transition-colors ${p.pinned ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-500 hover:text-slate-300'}`}>
+                          {p.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                        </button>
+                      )}
                       <button onClick={() => handleViewComments(p.id)} aria-label="Comentarios"
                         className="p-2 rounded-lg bg-slate-700/50 text-slate-400 hover:text-blue-300 transition-colors">
                         <MessageSquare className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleHidePost(p.id)} aria-label="Ocultar"
-                        className="p-2 rounded-lg bg-slate-700/50 text-slate-500 hover:text-amber-400 transition-colors">
-                        <EyeOff className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDeletePost(p.id)} aria-label="Eliminar"
-                        className="p-2 rounded-lg bg-slate-700/50 text-slate-500 hover:text-red-400 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {p.hidden ? (
+                        <>
+                          <button onClick={() => handleUnhidePost(p.id)} aria-label="Restaurar"
+                            className="p-2 rounded-lg bg-emerald-700/30 text-emerald-400 hover:bg-emerald-600/40 transition-colors">
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handlePermanentDelete(p.id)} aria-label="Eliminar permanentemente"
+                            className="p-2 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-800/40 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => handleHidePost(p.id)} aria-label="Ocultar"
+                            className="p-2 rounded-lg bg-slate-700/50 text-slate-500 hover:text-amber-400 transition-colors">
+                            <EyeOff className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeletePost(p.id)} aria-label="Eliminar"
+                            className="p-2 rounded-lg bg-slate-700/50 text-slate-500 hover:text-red-400 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {isPostExpanded && (

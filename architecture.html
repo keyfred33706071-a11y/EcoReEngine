@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitectura EcoReEngine</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f172a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;padding:20px}
+.container{max-width:1100px;width:100%;background:#1e293b;border-radius:24px;padding:28px 32px 20px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5);border:1px solid #334155;position:relative}
+.title{text-align:center;color:#e2e8f0;font-size:15px;font-weight:600;letter-spacing:.5px;margin-bottom:18px;text-transform:uppercase}
+.title span{color:#10b981}
+.grid{display:flex;flex-direction:column;gap:16px}
+
+/* Layer */
+.layer{display:flex;align-items:center;gap:16px}
+.layer-label{writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;width:18px;text-align:center;padding:8px 0}
+
+/* Box */
+.box{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:14px 18px;flex:1;position:relative}
+.box-title{color:#f1f5f9;font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.box-title .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-green{background:#10b981}
+.dot-blue{background:#3b82f6}
+.dot-amber{background:#f59e0b}
+.dot-purple{background:#a855f7}
+.box-content{display:flex;flex-wrap:wrap;gap:6px 12px}
+.tag{font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:5px}
+.tag .ico{font-size:14px}
+
+/* Arrows */
+.arrow-down{text-align:center;color:#475569;font-size:16px;line-height:1;padding:0;position:relative}
+.arrow-down::before{content:'\2193';display:block}
+.arrow-line{text-align:center;color:#475569;font-size:10px;padding:1px 0;position:relative}
+
+/* Bottom section */
+.bottom-row{display:flex;gap:16px}
+.bottom-row .box{flex:1}
+
+/* Cost box */
+.cost-box{position:absolute;top:20px;right:20px;background:#0f172a;border:1px solid #10b981;border-radius:10px;padding:8px 14px;text-align:center}
+.cost-box .cost-title{color:#10b981;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.cost-box .cost-value{color:#e2e8f0;font-size:11px;font-weight:600;margin-top:2px}
+
+/* Layer lines */
+.layer-line{display:flex;gap:16px;padding-left:34px}
+.layer-line .segment{flex:1;height:1px;background:linear-gradient(90deg,transparent,#334155 20%,#334155 80%,transparent)}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="cost-box">
+  <div class="cost-title">Hosting</div>
+  <div class="cost-value">Vercel · $5–9/mes</div>
+</div>
+
+<div class="title">Arquitectura <span>EcoReEngine</span></div>
+
+<div class="grid">
+
+  <!-- LAYER 1: USUARIO -->
+  <div class="layer">
+    <div class="layer-label">Usuario</div>
+    <div class="box" style="border-color:#10b981">
+      <div class="box-title"><span class="dot dot-green"></span>Navegador Web / App Android (Capacitor)</div>
+      <div class="box-content">
+        <span class="tag"><span class="ico">🌐</span> Web App (PWA)</span>
+        <span class="tag"><span class="ico">📱</span> Android APK</span>
+      </div>
+    </div>
+  </div>
+  <div class="arrow-down"></div>
+
+  <!-- LAYER 2: FRONTEND -->
+  <div class="layer">
+    <div class="layer-label">Frontend</div>
+    <div class="box" style="border-color:#3b82f6">
+      <div class="box-title"><span class="dot dot-blue"></span>React + TypeScript · Vite · Tailwind CSS · Lucide</div>
+      <div class="box-content">
+        <span class="tag"><span class="ico">⚛️</span> React 18 + TS</span>
+        <span class="tag"><span class="ico">⚡</span> Vite 5</span>
+        <span class="tag"><span class="ico">🎨</span> Tailwind CSS</span>
+        <span class="tag"><span class="ico">🔣</span> Lucide Icons</span>
+        <span class="tag"><span class="ico">📦</span> Capacitor</span>
+        <span class="tag"><span class="ico">🔥</span> Firebase SDK</span>
+      </div>
+    </div>
+  </div>
+  <div class="layer-line"><div class="segment"></div></div>
+
+  <!-- LAYER 3: BACKEND / SERVICIOS -->
+  <div class="bottom-row">
+    <!-- Firebase Auth -->
+    <div class="box" style="border-color:#f59e0b">
+      <div class="box-title"><span class="dot dot-amber"></span>🔐 Firebase Auth</div>
+      <div class="box-content">
+        <span class="tag">Login</span>
+        <span class="tag">Registro</span>
+        <span class="tag">Sesión</span>
+      </div>
+    </div>
+
+    <!-- Firebase Firestore -->
+    <div class="box" style="border-color:#10b981">
+      <div class="box-title"><span class="dot dot-green"></span>🗄️ Firebase Firestore</div>
+      <div class="box-content">
+        <span class="tag">Perfiles</span>
+        <span class="tag">Posts</span>
+        <span class="tag">Proyectos</span>
+        <span class="tag">Logros</span>
+        <span class="tag">Chat Admin</span>
+        <span class="tag">Centros</span>
+      </div>
+    </div>
+
+    <!-- APIs Externas -->
+    <div class="box" style="border-color:#a855f7">
+      <div class="box-title"><span class="dot dot-purple"></span>☁️ APIs Externas</div>
+      <div class="box-content">
+        <span class="tag"><span class="ico">🧠</span> Groq IA</span>
+        <span class="tag"><span class="ico">🤖</span> OpenRouter</span>
+        <span class="tag"><span class="ico">🖼️</span> ImgBB</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-line">↓</div>
+
+  <!-- Firebase Storage -->
+  <div class="layer">
+    <div class="box" style="border-color:#f59e0b;border-style:dashed">
+      <div class="box-title"><span class="dot dot-amber"></span>🖼️ Firebase Storage</div>
+      <div class="box-content">
+        <span class="tag">Fotos de proyectos</span>
+        <span class="tag">Avatares</span>
+        <span class="tag">Imágenes de evidencia</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center;color:#475569;font-size:9px;margin-top:12px;letter-spacing:.3px">
+  <span style="color:#10b981">EcoReEngine</span> · Arquitectura de software · Julio 2025
+</p>
+
+</div>
+</body>
+</html>
