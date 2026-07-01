@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth, db } from './lib/firebase';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
@@ -10,32 +10,32 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Browser } from '@capacitor/browser';
 
-import AuthPage from './pages/AuthPage';
-import Dashboard from './pages/Dashboard';
-import LearnPage from './pages/LearnPage';
-import InventoryPage from './pages/InventoryPage';
-import ProjectsPage from './pages/ProjectsPage';
-import CommunityPage from './pages/CommunityPage';
-import AchievementsPage from './pages/AchievementsPage';
-import Home from './pages/Home';
-import ToolsHub from './pages/ToolsHub';
-import ScannerPage from './pages/ScannerPage';
-import SettingsPage from './pages/SettingsPage';
-import PublicProfilePage from './pages/PublicProfilePage';
+const Home = lazy(() => import('./pages/Home'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const LearnPage = lazy(() => import('./pages/LearnPage'));
+const InventoryPage = lazy(() => import('./pages/InventoryPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const CommunityPage = lazy(() => import('./pages/CommunityPage'));
+const AchievementsPage = lazy(() => import('./pages/AchievementsPage'));
+const ToolsHub = lazy(() => import('./pages/ToolsHub'));
+const ScannerPage = lazy(() => import('./pages/ScannerPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const PuzzlePage = lazy(() => import('./pages/PuzzlePage'));
+const Diccionario = lazy(() => import('./pages/Diccionario'));
+const Calculadora = lazy(() => import('./pages/Calculadora'));
+const EwastePage = lazy(() => import('./pages/EwastePage'));
+const ElectronicaIntro = lazy(() => import('./pages/ElectronicaIntro'));
+const Laboratorio = lazy(() => import('./pages/Laboratorio'));
+const ProyectoDetalle = lazy(() => import('./pages/ProyectoDetalle'));
+const Asistente = lazy(() => import('./pages/Asistente'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const InstitutionPage = lazy(() => import('./pages/InstitutionPage'));
+const FormulasPage = lazy(() => import('./pages/FormulasPage'));
+const RecyclingMapPage = lazy(() => import('./pages/RecyclingMapPage'));
 
-import AdminPage from './pages/AdminPage';
-import PuzzlePage from './pages/PuzzlePage';
-import Diccionario from './pages/Diccionario';
-import Calculadora from './pages/Calculadora';
-import EwastePage from './pages/EwastePage';
-import ElectronicaIntro from './pages/ElectronicaIntro';
-import Laboratorio from './pages/Laboratorio';
-import ProyectoDetalle from './pages/ProyectoDetalle';
-import Asistente from './pages/Asistente';
-import LeaderboardPage from './pages/LeaderboardPage';
-import InstitutionPage from './pages/InstitutionPage';
-import FormulasPage from './pages/FormulasPage';
-import RecyclingMapPage from './pages/RecyclingMapPage';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Toast from './components/Toast';
@@ -242,7 +242,7 @@ export default function App() {
     );
   }
 
-  if (!authed) return <AuthPage onAuthSuccess={onAuthSuccess} />;
+  if (!authed) return <Suspense fallback={<div className="min-h-screen bg-slate-950" />}><AuthPage onAuthSuccess={onAuthSuccess} /></Suspense>;
 
   function navigate(p: string, userId?: string) {
     const target = p as Page;
@@ -311,7 +311,7 @@ export default function App() {
    return (
      <div key={resetKey} className={`${isDark ? 'dark' : 'light'} min-h-screen ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'} flex flex-col`}>
        <Sidebar currentPage={page} onNavigate={navigate} profile={profile} onSignOut={handleSignOut} />
-        <div className="lg:ml-64 min-h-screen flex flex-col pt-14 sm:pt-16">
+       <div className="lg:ml-64 min-h-screen flex flex-col pt-14 sm:pt-16">
         <Header currentPage={page} onNavigate={navigate} profile={profile} />
         {appConfig?.announcement_enabled && appConfig.announcement && (
           <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 lg:px-8 py-2.5 text-center">
@@ -407,7 +407,9 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
           </header>
-          <Asistente onNavigate={navigate} userId={profile.id} />
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></div>}>
+            <Asistente onNavigate={navigate} userId={profile.id} />
+          </Suspense>
         </div>
       )}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/80 py-1.5 grid grid-cols-5 shadow-2xl" style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}>
