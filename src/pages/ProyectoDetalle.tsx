@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ShieldCheck, Wrench, Camera, X, Building2, Star, Send, Trash, MessageCircle, Share2, FileDown, Pin, PinOff } from 'lucide-react';
-import { Camera as CapacitorCamera, CameraResultType, CameraDirection } from '@capacitor/camera';
+import { Camera as CapacitorCamera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Share } from '@capacitor/share';
 import { showToast } from '../components/Toast';
 import { projects } from '../lib/projectsData';
@@ -8,7 +8,6 @@ import { sendVisionMessage } from '../lib/ai';
 import { exportProjectAsPdf } from '../lib/exportPdf';
 import { awardXPWithCounter, rateProject, fetchProjectRatings, fetchProjectComments, addProjectComment, deleteProjectComment, ProjectComment, fetchProjectImage } from '../lib/firestore';
 import { timeAgo } from '../lib/firestore';
-import { compressDataUrl } from '../lib/compressImage';
 
 interface ProyectoDetalleProps {
   project: { type: 'static'; id: number } | { type: 'admin'; id: string; data: any };
@@ -108,14 +107,22 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
   async function takeEvidencePhoto() {
     try {
       const photo = await CapacitorCamera.getPhoto({
-        quality: 40,
+        quality: 30,
         allowEditing: false,
-        resultType: CameraResultType.DataUrl,
+        resultType: CameraResultType.Uri,
         direction: CameraDirection.Rear,
+        source: CameraSource.Camera,
       });
-      const rawDataUrl = photo.dataUrl;
-      if (!rawDataUrl) return;
-      const dataUrl = await compressDataUrl(rawDataUrl, 800, 0.5);
+      if (!photo.path) return;
+      const img = new Image();
+      img.src = photo.path;
+      await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; });
+      let w = img.width, h = img.height;
+      if (w > 800) { h = Math.round(h * 800 / w); w = 800; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      const dataUrl = c.toDataURL('image/webp', 0.5);
       setPhoto(dataUrl);
       setVerifyResult(null);
       setVerifying(true);
@@ -136,8 +143,9 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
         setVerifyResult({ ok: false, msg: 'Error al verificar: ' + (err.message || 'desconocido') });
       }
       setVerifying(false);
-    } catch {
-      // user cancelled
+    } catch (err: any) {
+      if (err?.message?.includes('cancel')) return;
+      setVerifyResult({ ok: false, msg: 'No se pudo acceder a la cámara. Revisá los permisos.' });
     }
   }
 

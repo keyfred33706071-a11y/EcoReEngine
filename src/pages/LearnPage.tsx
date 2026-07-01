@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Search, Filter, Clock, Zap, ChevronRight, CheckCircle, Play, BookOpen, Camera, Trash2 } from 'lucide-react';
-import { Camera as CapacitorCamera, CameraResultType, CameraDirection } from '@capacitor/camera';
+import { Camera as CapacitorCamera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Tutorial, TutorialProgress, TutorialBlock, difficultyLabel, difficultyColor, categoryLabel, fetchTutorials, fetchTutorialProgress, upsertTutorialProgress, awardXPWithCounter, awardTutorialXp } from '../lib/firestore';
-import { compressDataUrl } from '../lib/compressImage';
 
 interface LearnPageProps {
   userId: string;
@@ -46,17 +45,24 @@ export default function LearnPage({ userId, onXpGained, onBack }: LearnPageProps
   async function handlePhotoCapture() {
     try {
       const photo = await CapacitorCamera.getPhoto({
-        quality: 40,
+        quality: 30,
         allowEditing: false,
-        resultType: CameraResultType.DataUrl,
+        resultType: CameraResultType.Uri,
         direction: CameraDirection.Rear,
+        source: CameraSource.Camera,
       });
-      if (photo.dataUrl) {
-        const compressed = await compressDataUrl(photo.dataUrl, 800, 0.5);
-        setNewPhoto(compressed);
-      }
-    } catch {
-      // user cancelled
+      if (!photo.path) return;
+      const img = new Image();
+      img.src = photo.path;
+      await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; });
+      let w = img.width, h = img.height;
+      if (w > 800) { h = Math.round(h * 800 / w); w = 800; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      setNewPhoto(c.toDataURL('image/webp', 0.5));
+    } catch (err: any) {
+      if (err?.message?.includes('cancel')) return;
     }
   }
 
