@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Camera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
+import { useState, useRef } from 'react';
 import { sendVisionMessage, hasOpenRouterKey } from '../lib/ai';
 
 interface Props { onBack?: () => void; }
@@ -19,16 +18,16 @@ const COMPONENTS_LIST = [
   { name: 'Sensor (LDR, Temp, etc.)', icon: '🌡️', info: 'Detecta cambios en el entorno (luz, temperatura, distancia) y los convierte en señales eléctricas.' },
 ];
 
-async function loadAndCompress(uri: string, maxW = 1024, quality = 0.5): Promise<string> {
+async function fileToCompressedDataUrl(file: File, maxW = 1024, quality = 0.5): Promise<string> {
   const img = new Image();
-  img.src = uri;
-  await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; });
-  let { width, height } = img;
-  if (width > maxW) { height = Math.round(height * maxW / width); width = maxW; }
+  const url = URL.createObjectURL(file);
+  img.src = url;
+  await new Promise<void>((resolve, reject) => { img.onload = () => { URL.revokeObjectURL(url); resolve(); }; img.onerror = () => { URL.revokeObjectURL(url); reject(); }; });
+  let w = img.width, h = img.height;
+  if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
   const c = document.createElement('canvas');
-  c.width = width; c.height = height;
-  const ctx = c.getContext('2d')!;
-  ctx.drawImage(img, 0, 0, width, height);
+  c.width = w; c.height = h;
+  c.getContext('2d')!.drawImage(img, 0, 0, w, h);
   return c.toDataURL('image/webp', quality);
 }
 
@@ -37,22 +36,21 @@ export default function ScannerPage({ onBack }: Props) {
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [capturing, setCapturing] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const galleryInput = useRef<HTMLInputElement>(null);
 
   const analyze = async (dataUrl: string) => {
     setLoading(true);
     setResult(null);
     setError(null);
     if (!hasOpenRouterKey()) {
-      setError('Función de análisis con IA no disponible en esta versión. Puedes consultar el diccionario manual de componentes más abajo.');
+      setError('Análisis con IA no disponible en esta versión. Usá el diccionario manual.');
       setLoading(false);
       return;
     }
     try {
-      const text = await sendVisionMessage(
-        dataUrl,
-        'Identifica este componente electrónico. Responde SOLO con: Nombre, Tipo, De qué aparato suele extraerse, Si se puede reciclar (Sí/No), Consejo breve. Usa formato corto y claro en español.',
-      );
+      const text = await sendVisionMessage(dataUrl, 'Identifica este componente electrónico. Responde SOLO con: Nombre, Tipo, De qué aparato suele extraerse, Si se puede reciclar (Sí/No), Consejo breve. Usa formato corto y claro en español.');
       setResult(text);
     } catch (err: any) {
       setError(err.message);
@@ -60,39 +58,32 @@ export default function ScannerPage({ onBack }: Props) {
     setLoading(false);
   };
 
-  const captureFrom = async (source: CameraSource) => {
-    setCapturing(true);
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setProcessing(true);
     setError(null);
     try {
-      const photo = await Camera.getPhoto({
-        quality: 30,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        direction: CameraDirection.Rear,
-        source,
-      });
-      if (!photo.path) return;
-      const compressed = await loadAndCompress(photo.path);
+      const compressed = await fileToCompressedDataUrl(file);
       setImage(compressed);
       setResult(null);
-      if (hasOpenRouterKey()) {
-        analyze(compressed);
-      }
-    } catch (err: any) {
-      if (err?.message?.includes('cancel')) return;
-      setError('No se pudo acceder a la cámara. Revisá los permisos en Configuración > EcoReEngine > Cámara.');
+      if (hasOpenRouterKey()) analyze(compressed);
+    } catch {
+      setError('Error al procesar la imagen.');
     } finally {
-      setCapturing(false);
+      setProcessing(false);
+      if (cameraInput.current) cameraInput.current.value = '';
+      if (galleryInput.current) galleryInput.current.value = '';
     }
   };
 
   return (
     <div className="min-h-screen p-4 max-w-2xl mx-auto">
+      <input ref={cameraInput} type="file" accept="image/*" capture="environment" onChange={e => handleFile(e.target.files?.[0])} className="hidden" />
+      <input ref={galleryInput} type="file" accept="image/*" onChange={e => handleFile(e.target.files?.[0])} className="hidden" />
+
       <div className="flex items-center gap-3 mb-6">
         <button onClick={onBack} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
-          <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
+          <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2}><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
         <h1 className="text-xl font-bold text-slate-100">Scanner de Componentes</h1>
       </div>
@@ -101,33 +92,30 @@ export default function ScannerPage({ onBack }: Props) {
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-600/30 flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={1.5}>
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-              <circle cx="12" cy="13" r="4"/>
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>
             </svg>
           </div>
           <div>
             <p className="text-sm font-bold text-slate-100">Escanea con la cámara</p>
-            <p className="text-xs text-slate-400">Toma una foto y la IA identificará el componente y te dirá si es reciclable</p>
+            <p className="text-xs text-slate-400">Toma una foto y la IA identificará el componente</p>
           </div>
         </div>
 
-        <button onClick={() => captureFrom(CameraSource.Camera)} disabled={capturing}
+        <button onClick={() => cameraInput.current?.click()} disabled={processing}
           className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-          {capturing
-            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Abriendo cámara...</>
+          {processing
+            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Procesando...</>
             : <><svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Abrir cámara</>}
         </button>
 
         <div className="flex items-center gap-3 my-3">
-          <div className="flex-1 h-px bg-slate-700/50" />
-          <span className="text-xs text-slate-500">o</span>
-          <div className="flex-1 h-px bg-slate-700/50" />
+          <div className="flex-1 h-px bg-slate-700/50" /><span className="text-xs text-slate-500">o</span><div className="flex-1 h-px bg-slate-700/50" />
         </div>
 
-        <button onClick={() => captureFrom(CameraSource.Photos)} disabled={capturing}
+        <button onClick={() => galleryInput.current?.click()} disabled={processing}
           className="w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-          {capturing
-            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Abriendo galería...</>
+          {processing
+            ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Procesando...</>
             : <><svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Desde galería</>}
         </button>
 
@@ -140,43 +128,31 @@ export default function ScannerPage({ onBack }: Props) {
         {image && (
           <div className="mt-4">
             <img src={image} alt="Componente" className="w-full rounded-xl" />
-
             {loading && (
               <div className="mt-3 flex items-center gap-3 bg-slate-800/80 rounded-xl p-4 border border-slate-700/50">
                 <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm text-slate-300">La IA está analizando la imagen...</span>
               </div>
             )}
-
             {result && (
               <div className="mt-3 bg-slate-800/80 rounded-xl p-4 border border-emerald-700/30">
                 <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">🔍 Análisis de la IA:</p>
                 <p className="text-sm text-slate-200 whitespace-pre-wrap">{result}</p>
               </div>
             )}
-
-            {!loading && !result && !error && !hasOpenRouterKey() && (
-              <p className="mt-2 text-sm text-slate-400">El análisis con IA por cámara no está disponible. Usa el diccionario de componentes manual más abajo.</p>
-            )}
           </div>
         )}
       </div>
 
-      <p className="text-sm text-slate-400 mb-4">
-        O toca cada componente para ver información útil.
-      </p>
+      <p className="text-sm text-slate-400 mb-4">O toca cada componente para ver información útil.</p>
 
       <div className="space-y-3">
         {COMPONENTS_LIST.map((item) => (
           <details key={item.name} className="group bg-slate-800/60 border border-slate-700/50 rounded-xl overflow-hidden">
             <summary className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-700/40 transition-colors list-none">
               <span className="text-2xl">{item.icon}</span>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-semibold text-slate-100">{item.name}</span>
-              </div>
-              <svg className="w-4 h-4 text-slate-500 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
+              <span className="text-sm font-semibold text-slate-100 flex-1">{item.name}</span>
+              <svg className="w-4 h-4 text-slate-500 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9l6 6 6-6"/></svg>
             </summary>
             <div className="px-4 pb-4 pt-0">
               <div className="border-t border-slate-700/50 pt-3">

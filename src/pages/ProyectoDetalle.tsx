@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ShieldCheck, Wrench, Camera, X, Building2, Star, Send, Trash, MessageCircle, Share2, FileDown, Pin, PinOff } from 'lucide-react';
-import { Camera as CapacitorCamera, CameraResultType, CameraDirection, CameraSource } from '@capacitor/camera';
 import { Share } from '@capacitor/share';
 import { showToast } from '../components/Toast';
 import { projects } from '../lib/projectsData';
@@ -104,19 +103,17 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
 
   const storageKey = userId ? `lab_photo_${userId}_${selection.type}_${isAdmin ? selection.id : selection.id}` : null;
 
-  async function takeEvidencePhoto() {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleEvidenceFile(file: File | undefined) {
+    if (!file) return;
+    setVerifying(true);
+    setVerifyResult(null);
     try {
-      const photo = await CapacitorCamera.getPhoto({
-        quality: 30,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        direction: CameraDirection.Rear,
-        source: CameraSource.Camera,
-      });
-      if (!photo.path) return;
       const img = new Image();
-      img.src = photo.path;
-      await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; });
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      await new Promise<void>((resolve, reject) => { img.onload = () => { URL.revokeObjectURL(url); resolve(); }; img.onerror = () => { URL.revokeObjectURL(url); reject(); }; });
       let w = img.width, h = img.height;
       if (w > 800) { h = Math.round(h * 800 / w); w = 800; }
       const c = document.createElement('canvas');
@@ -124,35 +121,25 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
       c.getContext('2d')!.drawImage(img, 0, 0, w, h);
       const dataUrl = c.toDataURL('image/webp', 0.5);
       setPhoto(dataUrl);
-      setVerifyResult(null);
-      setVerifying(true);
-      try {
-        const res = await sendVisionMessage(
-          dataUrl,
-          `Responde SOLO con una palabra: "SI" si la imagen contiene una foto real de un objeto físico, aparato, circuito, dispositivo, herramienta, o manualidad. Responde "NO" solo si la imagen está en blanco, es texto sin foto, un dibujo abstracto, o un error de cámara.`
-        );
-        const ok = res.trim().toUpperCase().startsWith('SI');
-        setVerifyResult({ ok, msg: ok ? 'Proyecto verificado correctamente +100 XP' : 'No se reconoce como proyecto electrónico. ¿La foto muestra tu proyecto?' });
-        if (ok && storageKey) {
-          localStorage.setItem(storageKey, dataUrl);
-          if (userId) {
-            await awardXPWithCounter(userId, 100, 'projects_completed');
-          }
-        }
-      } catch (err: any) {
-        setVerifyResult({ ok: false, msg: 'Error al verificar: ' + (err.message || 'desconocido') });
+      const res = await sendVisionMessage(dataUrl, `Responde SOLO con una palabra: "SI" si la imagen contiene una foto real de un objeto físico, aparato, circuito, dispositivo, herramienta, o manualidad. Responde "NO" solo si la imagen está en blanco, es texto sin foto, un dibujo abstracto, o un error de cámara.`);
+      const ok = res.trim().toUpperCase().startsWith('SI');
+      setVerifyResult({ ok, msg: ok ? 'Proyecto verificado correctamente +100 XP' : 'No se reconoce como proyecto electrónico. ¿La foto muestra tu proyecto?' });
+      if (ok && storageKey) {
+        localStorage.setItem(storageKey, dataUrl);
+        if (userId) await awardXPWithCounter(userId, 100, 'projects_completed');
       }
-      setVerifying(false);
     } catch (err: any) {
-      if (err?.message?.includes('cancel')) return;
-      setVerifyResult({ ok: false, msg: 'No se pudo acceder a la cámara. Revisá los permisos.' });
+      setVerifyResult({ ok: false, msg: 'Error al verificar: ' + (err.message || 'desconocido') });
     }
+    setVerifying(false);
+    if (fileRef.current) fileRef.current.value = '';
   }
 
   function removePhoto() {
     setPhoto(null);
     setVerifyResult(null);
     if (storageKey) localStorage.removeItem(storageKey);
+    if (fileRef.current) fileRef.current.value = '';
   }
 
   return (
@@ -381,7 +368,8 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
       </div>
 
       {/* Foto de evidencia */}
-      <button onClick={takeEvidencePhoto} disabled={verifying}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={e => handleEvidenceFile(e.target.files?.[0])} className="hidden" />
+      <button onClick={() => fileRef.current?.click()} disabled={verifying}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-600/50 text-slate-400 hover:border-emerald-600/50 hover:text-emerald-400 transition-colors disabled:opacity-50">
         {verifying ? (
           <div className="w-5 h-5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
