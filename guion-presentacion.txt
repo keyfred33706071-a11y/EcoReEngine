@@ -1,0 +1,24 @@
+GUION EcoReEngine — CLX
+Presentador: Keyfred
+
+---
+
+Hola, gracias por estar acá. Soy Keyfred.
+
+Les quiero presentar EcoReEngine, una app para que reciclar componentes electrónicos sea más fácil. La idea es que cualquier persona, aunque no sepa nada de tecnología, pueda aprender, identificar piezas y construir proyectos nuevos con lo que iba a tirar a la basura. Todo desde el celular.
+
+Para desarrollarla usamos inteligencia artificial con Opencode y Claude Code, herramientas que entienden español y nos ayudaron con el código. Del lado del servidor usamos Firebase, y la app es nativa, compilada con Android Studio y Capacitor, como cualquier app de la Play Store. También tiene inteligencia artificial con OpenRouter y Groq, que es lo que le da vida a EcoBot y al escáner.
+
+Ahora les explico lo que se puede hacer dentro de la app. En la pantalla principal hay tips ecológicos y acceso rápido a las herramientas.
+
+En el laboratorio de proyectos hay guías paso a paso para construir inventos con piezas recicladas, como hacer un carrito con componentes viejos. Cada proyecto tiene su lista de materiales, herramientas y pasos. Podés marcar tu progreso, tomar fotos y la inteligencia artificial puede revisar si lo hiciste bien.
+
+El centro de herramientas tiene de todo. EcoBot es un asistente que le preguntás lo que sea sobre reciclaje o electrónica y te responde al instante. El escáner identifica componentes con la cámara o con una foto y te dice qué son. También hay calculadora de resistencias por colores, diccionario de componentes, fórmulas rápidas de electrónica, y un mapa de reciclaje con centros de acopio en Venezuela.
+
+La comunidad es como una red social de reciclaje. Ahí la gente publica sus proyectos, hace preguntas, comparte ideas y comenta. Se puede dar like y compartir.
+
+En el perfil ves todo tu progreso: cuánto CO2 has evitado, componentes rescatados, proyectos terminados, tu nivel y experiencia. También tiene gamificación: cada acción te da experiencia, subís de nivel, desbloqueás logros, ganás insignias y hay rankings para competir.
+
+EcoReEngine une educación, tecnología y conciencia ambiental. En vez de tirar componentes a la basura, te enseña a reutilizarlos y crear cosas nuevas. Ya funciona, está lista para usar.
+
+Muchas gracias. ¿Preguntas?

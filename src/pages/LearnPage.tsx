@@ -1,6 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Search, Filter, Clock, Zap, ChevronRight, CheckCircle, Play, BookOpen, Camera, Trash2 } from 'lucide-react';
+import { Camera as CapacitorCamera, CameraResultType, CameraDirection } from '@capacitor/camera';
 import { Tutorial, TutorialProgress, TutorialBlock, difficultyLabel, difficultyColor, categoryLabel, fetchTutorials, fetchTutorialProgress, upsertTutorialProgress, awardXPWithCounter, awardTutorialXp } from '../lib/firestore';
+import { compressDataUrl } from '../lib/compressImage';
 
 interface LearnPageProps {
   userId: string;
@@ -24,7 +26,6 @@ export default function LearnPage({ userId, onXpGained, onBack }: LearnPageProps
   const [completing, setCompleting] = useState(false);
   const [verificationPhotos, setVerificationPhotos] = useState<Record<string, string>>({});
   const [newPhoto, setNewPhoto] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [xpAwarded, setXpAwarded] = useState(false);
 
@@ -42,19 +43,25 @@ export default function LearnPage({ userId, onXpGained, onBack }: LearnPageProps
     localStorage.setItem(`tutorial_photos_${userId}`, JSON.stringify(updated));
   }
 
-  function handlePhotoCapture(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setNewPhoto(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  async function handlePhotoCapture() {
+    try {
+      const photo = await CapacitorCamera.getPhoto({
+        quality: 40,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        direction: CameraDirection.Rear,
+      });
+      if (photo.dataUrl) {
+        const compressed = await compressDataUrl(photo.dataUrl, 800, 0.5);
+        setNewPhoto(compressed);
+      }
+    } catch {
+      // user cancelled
+    }
   }
 
   function removeNewPhoto() {
     setNewPhoto(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function toggleStep(index: number) {
@@ -281,17 +288,9 @@ export default function LearnPage({ userId, onXpGained, onBack }: LearnPageProps
         {/* Foto de evidencia */}
         {!isCompleted ? (
           <div className="mb-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhotoCapture}
-              className="hidden"
-            />
             {!newPhoto ? (
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handlePhotoCapture}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-600/50 text-slate-400 hover:border-emerald-600/50 hover:text-emerald-400 transition-colors"
               >
                 <Camera className="w-5 h-5" />

@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, ShieldCheck, Wrench, Camera, X, Building2, Star, Send, Trash, MessageCircle, Share2, FileDown, Pin, PinOff } from 'lucide-react';
+import { Camera as CapacitorCamera, CameraResultType, CameraDirection } from '@capacitor/camera';
 import { Share } from '@capacitor/share';
 import { showToast } from '../components/Toast';
 import { projects } from '../lib/projectsData';
@@ -7,6 +8,7 @@ import { sendVisionMessage } from '../lib/ai';
 import { exportProjectAsPdf } from '../lib/exportPdf';
 import { awardXPWithCounter, rateProject, fetchProjectRatings, fetchProjectComments, addProjectComment, deleteProjectComment, ProjectComment, fetchProjectImage } from '../lib/firestore';
 import { timeAgo } from '../lib/firestore';
+import { compressDataUrl } from '../lib/compressImage';
 
 interface ProyectoDetalleProps {
   project: { type: 'static'; id: number } | { type: 'admin'; id: string; data: any };
@@ -33,8 +35,6 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
     const id = selection.type === 'admin' ? `a_${selection.id}` : `s_${selection.id}`;
     try { const arr = JSON.parse(localStorage.getItem('eco_pinned_projects') || '[]'); return arr.includes(id); } catch { return false; }
   });
-  const fileRef = useRef<HTMLInputElement>(null);
-
   const pinId = selection.type === 'admin' ? `a_${selection.id}` : `s_${selection.id}`;
   function togglePinDetail(e: React.MouseEvent) {
     e.stopPropagation();
@@ -105,12 +105,17 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
 
   const storageKey = userId ? `lab_photo_${userId}_${selection.type}_${isAdmin ? selection.id : selection.id}` : null;
 
-  function handleFileCapture(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
+  async function takeEvidencePhoto() {
+    try {
+      const photo = await CapacitorCamera.getPhoto({
+        quality: 40,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        direction: CameraDirection.Rear,
+      });
+      const rawDataUrl = photo.dataUrl;
+      if (!rawDataUrl) return;
+      const dataUrl = await compressDataUrl(rawDataUrl, 800, 0.5);
       setPhoto(dataUrl);
       setVerifyResult(null);
       setVerifying(true);
@@ -131,15 +136,15 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
         setVerifyResult({ ok: false, msg: 'Error al verificar: ' + (err.message || 'desconocido') });
       }
       setVerifying(false);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      // user cancelled
+    }
   }
 
   function removePhoto() {
     setPhoto(null);
     setVerifyResult(null);
     if (storageKey) localStorage.removeItem(storageKey);
-    if (fileRef.current) fileRef.current.value = '';
   }
 
   return (
@@ -368,8 +373,7 @@ export default function ProyectoDetalle({ project: selection, onBack, userId }: 
       </div>
 
       {/* Foto de evidencia */}
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFileCapture} className="hidden" />
-      <button onClick={() => fileRef.current?.click()} disabled={verifying}
+      <button onClick={takeEvidencePhoto} disabled={verifying}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-600/50 text-slate-400 hover:border-emerald-600/50 hover:text-emerald-400 transition-colors disabled:opacity-50">
         {verifying ? (
           <div className="w-5 h-5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />

@@ -13,3 +13,16 @@ export async function compressImage(file: File, maxW: number, quality: number): 
   const blob = await new Promise<Blob>(resolve => c.toBlob(b => resolve(b!), 'image/webp', quality));
   return new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
 }
+
+export async function compressDataUrl(dataUrl: string, maxW = 1024, quality = 0.6): Promise<string> {
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; });
+  let { width, height } = img;
+  if (width > maxW) { height = Math.round(height * maxW / width); width = maxW; }
+  const c = document.createElement('canvas');
+  c.width = width; c.height = height;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(img, 0, 0, width, height);
+  return c.toDataURL('image/webp', quality);
+}
