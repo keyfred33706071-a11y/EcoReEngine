@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Camera, CameraResultType, CameraDirection } from '@capacitor/camera';
 import { sendVisionMessage, hasOpenRouterKey } from '../lib/ai';
+import { compressDataUrl } from '../lib/compressImage';
 
 interface EwasteItem {
   name: string;
@@ -109,12 +110,15 @@ export default function EwastePage({ onNavigate }: Props) {
         resultType: CameraResultType.DataUrl,
         direction: CameraDirection.Rear,
       });
-      setPhoto(image.dataUrl ?? null);
+      const rawDataUrl = image.dataUrl ?? null;
+      if (!rawDataUrl) return;
+      const dataUrl = await compressDataUrl(rawDataUrl, 800, 0.5);
+      setPhoto(dataUrl);
       setAiResult(null);
       setError(null);
 
-      if (image.dataUrl && hasOpenRouterKey()) {
-        analyzeWithAI(image.dataUrl);
+      if (hasOpenRouterKey()) {
+        analyzeWithAI(dataUrl);
       } else if (!hasOpenRouterKey()) {
         setError('Identificación por IA no disponible en esta versión.');
       }

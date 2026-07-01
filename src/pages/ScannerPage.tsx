@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Camera, CameraResultType, CameraDirection } from '@capacitor/camera';
 import { sendVisionMessage, hasOpenRouterKey } from '../lib/ai';
+import { compressDataUrl } from '../lib/compressImage';
 
 interface Props { onBack?: () => void; }
 
@@ -56,11 +57,13 @@ export default function ScannerPage({ onBack }: Props) {
         resultType: CameraResultType.DataUrl,
         direction: CameraDirection.Rear,
       });
-      const dataUrl = photo.dataUrl ?? null;
+      const rawDataUrl = photo.dataUrl ?? null;
+      if (!rawDataUrl) return;
+      const dataUrl = await compressDataUrl(rawDataUrl, 800, 0.5);
       setImage(dataUrl);
       setResult(null);
       setError(null);
-      if (dataUrl && hasOpenRouterKey()) {
+      if (hasOpenRouterKey()) {
         analyze(dataUrl);
       }
     } catch {
