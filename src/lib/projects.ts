@@ -1,6 +1,6 @@
 export const proyectosDisponibles = `PROYECTOS DISPONIBLES EN ECOREENGINE (28 proyectos):
 
-1. **PowerBulb** (Fácil, 30 min) - Sistema de Iluminación Sustentable con LED reciclado y cable USB.
+1. **PowerBulb** (Intermedio, 60 min) - Powerbank y Luminaria Sustentable con celdas 18650 y módulo step-down.
 
 2. **Eco-Ventilador USB** (Fácil, 40 min) - Ventilador portátil con motor DC reciclado de juguetes o electrodomésticos.
 
