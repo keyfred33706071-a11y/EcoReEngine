@@ -1,4 +1,11 @@
 import { Lightbulb, Wrench, Cpu, Zap, Radio, Car, Fan, Moon, RotateCcw, Volume2, Bot, Droplets, ArrowUpFromLine, Pencil, DoorOpen, Sailboat, Gauge, Fingerprint, Brush, HandMetal, Sun, Magnet, Thermometer, Dices, Music, Activity, Brain, AlertTriangle, Sprout, Shield, Camera, Wifi, Battery } from 'lucide-react';
+import powerbulbImg from '../assets/proyecto/powerbulb.webp';
+import sensorLuzImg from '../assets/proyecto/sensor-luz.webp';
+import motorDcImg from '../assets/proyecto/motor-dc.webp';
+import ecoRoverImg from '../assets/proyecto/eco-rover.webp';
+import ecoVentiladorImg from '../assets/proyecto/eco-ventilador.webp';
+import lamparaNocturnaImg from '../assets/proyecto/lampara-nocturna.webp';
+import ecoDinamoImg from '../assets/proyecto/eco-dinamo.webp';
 
 export interface ProjectData {
   id: number;
@@ -29,7 +36,7 @@ export const projects: ProjectData[] = [
     thumbnail: 'from-yellow-600/40 to-amber-700/40',
     thumbnailIcon: Lightbulb,
     thumbnailLabel: 'PowerBulb',
-    image: '/proyecto/powerbulb.png',
+    image: powerbulbImg,
     materials: [
       { name: 'Celdas de Litio 18650', source: 'Baterías de laptops o dispositivos viejos' },
       { name: 'Módulo cargador USB para auto (Step-down)', source: 'Adaptador para carro reciclado' },
@@ -69,7 +76,7 @@ export const projects: ProjectData[] = [
     thumbnail: 'from-purple-600/40 to-indigo-600/40',
     thumbnailIcon: Radio,
     thumbnailLabel: 'Sensor',
-    image: '/proyecto/sensor-luz.png',
+    image: sensorLuzImg,
     materials: [
       { name: 'Fotoresistencia (LDR)', source: 'Sensores de luz viejos o juguetes' },
       { name: 'Transistor NPN', source: 'Tarjetas madre o equipos de audio' },
@@ -104,7 +111,7 @@ export const projects: ProjectData[] = [
     thumbnail: 'from-pink-600/40 to-rose-600/40',
     thumbnailIcon: Zap,
     thumbnailLabel: 'Motor',
-    image: '/proyecto/motor-dc.png',
+    image: motorDcImg,
     materials: [
       { name: 'Bobina de cobre esmaltado', source: 'Transformadores o motores viejos' },
       { name: 'Imán permanente', source: 'Parlantes o discos duros viejos' },
@@ -137,7 +144,7 @@ export const projects: ProjectData[] = [
     time: '50 min',
     description: 'Un vehículo motorizado básico que enseña los fundamentos de la tracción, los ejes de transmisión y la creación de circuitos en serie con interruptores.',
     thumbnail: 'from-blue-600/40 to-cyan-700/40',
-    image: '/proyecto/eco-rover.png',
+    image: ecoRoverImg,
     thumbnailIcon: Car,
     thumbnailLabel: 'Rover',
     materials: [
@@ -173,7 +180,7 @@ export const projects: ProjectData[] = [
     time: '30 min',
     description: 'Un ventilador portátil de escritorio ideal para refrescar espacios personales. Enseña cómo aprovechar la energía de un puerto USB (5V) para accionar motores DC.',
     thumbnail: 'from-teal-600/40 to-emerald-700/40',
-    image: '/proyecto/eco-ventilador.png',
+    image: ecoVentiladorImg,
     thumbnailIcon: Fan,
     thumbnailLabel: 'Ventilador',
     materials: [
@@ -207,7 +214,7 @@ export const projects: ProjectData[] = [
     time: '45 min',
     description: 'Una lámpara que se enciende automáticamente cuando la habitación se queda a oscuras usando transistores y sensores de luz LDR.',
     thumbnail: 'from-indigo-600/40 to-purple-700/40',
-    image: '/proyecto/lampara-nocturna.png',
+    image: lamparaNocturnaImg,
     thumbnailIcon: Moon,
     thumbnailLabel: 'Nocturna',
     materials: [
@@ -241,7 +248,7 @@ export const projects: ProjectData[] = [
     time: '40 min',
     description: 'Un proyecto que demuestra la ley de conservación de la energía, transformando fuerza mecánica manual en electricidad limpia para encender luces sin baterías.',
     thumbnail: 'from-amber-600/40 to-orange-700/40',
-    image: '/proyecto/eco-dinamo.png',
+    image: ecoDinamoImg,
     thumbnailIcon: RotateCcw,
     thumbnailLabel: 'Dinamo',
     materials: [
