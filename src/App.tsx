@@ -6,8 +6,6 @@ import { fetchProfile, createProfile, UserProfile, fetchAppConfig, AppConfig, fe
 import { checkAndAwardAchievements } from './lib/achievementChecker';
 import { initGlobalErrorHandler } from './lib/errorLogger';
 import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Share } from '@capacitor/share';
 import { Browser } from '@capacitor/browser';
 
 const Home = lazy(() => import('./pages/Home'));
@@ -41,7 +39,7 @@ import Header from './components/layout/Header';
 import Toast from './components/Toast';
 import AchievementPopup, { showAchievementPopup } from './components/AchievementPopup';
 import { isNewerVersion } from './lib/version';
-import { LayoutDashboard, Cpu, User, X, Bot, Home as HomeIcon, Users, Download } from 'lucide-react';
+import { LayoutDashboard, Cpu, User, X, Bot, Home as HomeIcon, Users, Download, Loader } from 'lucide-react';
 import RobotDialog from './components/RobotDialog';
 
 const APP_VERSION = '1.1.1';
@@ -82,6 +80,7 @@ export default function App() {
   const [appUpdate, setAppUpdate] = useState<AppUpdate | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -345,27 +344,24 @@ export default function App() {
                   )}
                   <div className="flex flex-col gap-2 w-full mt-1">
                     <button onClick={async () => {
+                      setDownloading(true);
                       if (Capacitor.isNativePlatform()) {
-                        try {
-                          const resp = await fetch(appUpdate.apk_url);
-                          const blob = await resp.blob();
-                          const base64 = await new Promise<string>((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result as string);
-                            reader.readAsDataURL(blob);
-                          });
-                          const clean = base64.split(',')[1];
-                          const fileName = `EcoReEngine-v${appUpdate.version}.apk`;
-                          await Filesystem.writeFile({ path: fileName, data: clean, directory: Directory.Cache });
-                          const uri = await Filesystem.getUri({ path: fileName, directory: Directory.Cache });
-                          await Share.share({ url: uri.uri, title: fileName });
-                        } catch { Browser.open({ url: appUpdate.apk_url, windowName: '_system' }); }
+                        Browser.open({ url: appUpdate.apk_url, windowName: '_system' });
+                        setTimeout(() => setDownloading(false), 3000);
                       } else {
-                        window.open(appUpdate.apk_url, '_blank');
+                        const a = document.createElement('a');
+                        a.href = appUpdate.apk_url;
+                        a.download = `EcoReEngine-v${appUpdate.version}.apk`;
+                        a.click();
+                        setDownloading(false);
                       }
                     }}
                       className="w-full text-xs font-bold text-white px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-1.5 transition-colors">
-                      <Download className="w-4 h-4" /> Descargar e Instalar
+                      {downloading ? (
+                        <><Loader className="w-4 h-4 animate-spin" /> Abriendo descarga...</>
+                      ) : (
+                        <><Download className="w-4 h-4" /> Descargar e Instalar</>
+                      )}
                     </button>
                     {!appUpdate.force_update && (
                       <button onClick={() => setAppUpdate(null)}
