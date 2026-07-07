@@ -167,7 +167,7 @@ service cloud.firestore {
     // ─── Configuración / OTA (owner o admin) ──────────────
     match /app_config/{doc} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if hasRole(['owner', 'admin']);
     }
 
     // ─── Notificaciones ───────────────────────────────────
