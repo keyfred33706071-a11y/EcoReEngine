@@ -79,6 +79,8 @@ export default function App() {
   const [resetKey, setResetKey] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadDone, setDownloadDone] = useState(false);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -341,18 +343,54 @@ export default function App() {
                     </div>
                   )}
                   <div className="flex flex-col gap-2 w-full mt-1">
-                    <button onClick={async () => {
-                      setDownloading(true);
-                      window.open(appUpdate.apk_url, '_blank');
-                      setDownloading(false);
-                    }}
-                      className="w-full text-xs font-bold text-white px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-1.5 transition-colors">
-                      {downloading ? (
-                        <><Loader className="w-4 h-4 animate-spin" /> Abriendo descarga...</>
-                      ) : (
-                        <><Download className="w-4 h-4" /> Descargar e Instalar</>
-                      )}
-                    </button>
+                    {downloadDone ? (
+                      <p className="text-xs text-emerald-400 font-medium">✓ Descarga completa. Revisa tus notificaciones e instala la actualización.</p>
+                    ) : downloading ? (
+                      <div className="w-full flex flex-col gap-2">
+                        <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }} />
+                        </div>
+                        <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+                          <Loader className="w-3.5 h-3.5 animate-spin" />
+                          {downloadProgress > 0 ? `Descargando ${downloadProgress}%` : 'Preparando descarga...'}
+                        </p>
+                      </div>
+                    ) : (
+                      <button onClick={async () => {
+                        setDownloading(true);
+                        setDownloadProgress(0);
+                        setDownloadDone(false);
+                        try {
+                          const res = await fetch(appUpdate.apk_url);
+                          const total = Number(res.headers.get('Content-Length')) || 0;
+                          const reader = res.body!.getReader();
+                          const chunks: Uint8Array[] = [];
+                          let loaded = 0;
+                          while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            chunks.push(value);
+                            loaded += value.length;
+                            if (total) setDownloadProgress(Math.round((loaded / total) * 100));
+                          }
+                          const blob = new Blob(chunks as BlobPart[], { type: 'application/vnd.android.package-archive' });
+                          const blobUrl = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = blobUrl;
+                          a.download = `EcoReEngine-v${appUpdate.version}.apk`;
+                          a.click();
+                          URL.revokeObjectURL(blobUrl);
+                          setDownloadProgress(100);
+                          setDownloadDone(true);
+                        } catch {
+                          setDownloading(false);
+                          setDownloadProgress(0);
+                        }
+                      }}
+                        className="w-full text-xs font-bold text-white px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-1.5 transition-colors">
+                        <Download className="w-4 h-4" /> Descargar e Instalar
+                      </button>
+                    )}
                     {!appUpdate.force_update && (
                       <button onClick={() => setAppUpdate(null)}
                         className="w-full text-xs text-slate-400 hover:text-slate-200 px-4 py-2 rounded-xl border border-slate-600/40 hover:border-slate-500/40 transition-colors">
