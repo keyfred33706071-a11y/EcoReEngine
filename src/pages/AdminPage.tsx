@@ -87,12 +87,10 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
   // ─── App Update ───
   const [appUpdate, setAppUpdateState] = useState<AppUpdate | null>(null);
   const [updateVersion, setUpdateVersion] = useState('');
-  const [updateApkFile, setUpdateApkFile] = useState<File | null>(null);
   const [updateApkUrl, setUpdateApkUrl] = useState('');
   const [updateChangelog, setUpdateChangelog] = useState('');
   const [updateForce, setUpdateForce] = useState(false);
   const [savingUpdate, setSavingUpdate] = useState(false);
-  const [uploadingApk, setUploadingApk] = useState(false);
 
   // ─── Tools ───
   const [reports, setReports] = useState<any[]>([]);
@@ -1238,24 +1236,22 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
             Actualizar App (OTA)
           </h3>
           <p className="text-xs text-slate-400">
-            Sube el archivo APK directamente. La versión anterior se reemplazará automáticamente.
+            Pega la URL directa del APK (sube el archivo desde tu PC con <code className="text-emerald-400">curl</code> a catbox.moe y pega el link aquí).
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Versión</label>
               <input value={updateVersion} onChange={e => setUpdateVersion(e.target.value)}
-                className="input w-full text-sm" placeholder="Ej: 1.0.3" />
+                className="input w-full text-sm" placeholder="Ej: 1.17.0" />
             </div>
             <div>
-              <label className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Archivo APK</label>
-              <input type="file" accept=".apk,application/vnd.android.package-archive"
-                onChange={e => { setUpdateApkFile(e.target.files?.[0] ?? null); setUpdateApkUrl(''); }}
-                className="block w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/20 file:text-emerald-400 hover:file:bg-emerald-500/30 file:cursor-pointer cursor-pointer" />
-              {updateApkFile && <p className="text-[10px] text-emerald-400 mt-1">{updateApkFile.name} ({(updateApkFile.size / 1048576).toFixed(1)} MB)</p>}
-              <p className="text-[10px] text-slate-600 mt-1">o pega una URL directa:</p>
-              <input value={updateApkUrl} onChange={e => { setUpdateApkUrl(e.target.value); setUpdateApkFile(null); }}
-                className="input w-full text-sm mt-1" placeholder="https://files.catbox.moe/vtw72h.apk" />
+              <label className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">URL del APK</label>
+              <input value={updateApkUrl} onChange={e => setUpdateApkUrl(e.target.value)}
+                className="input w-full text-sm" placeholder="https://files.catbox.moe/xxxxxx.apk" />
+              <p className="text-[10px] text-slate-600 mt-1">
+                Sube el APK desde la terminal: <code className="text-emerald-400">curl -F "reqtype=fileupload" -F "fileToUpload=@ruta/al.apk" https://catbox.moe/user/api.php</code>
+              </p>
             </div>
           </div>
 
@@ -1272,31 +1268,18 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
           </label>
 
           <button onClick={async () => {
-            if (!updateVersion.trim()) return;
-            if (!updateApkFile && !updateApkUrl.trim()) return;
-            setUploadingApk(true);
+            if (!updateVersion.trim() || !updateApkUrl.trim()) return;
             setSavingUpdate(true);
             try {
-              let apkUrl = updateApkUrl.trim();
-              if (updateApkFile) {
-                const formData = new FormData();
-                formData.append('reqtype', 'fileupload');
-                formData.append('fileToUpload', updateApkFile);
-                const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData });
-                if (!res.ok) throw new Error('Error al subir');
-                apkUrl = await res.text();
-              }
-              await setAppUpdate({ version: updateVersion.trim(), apk_url: apkUrl.trim(), changelog: updateChangelog.trim(), force_update: updateForce }, profile.id);
-              setUpdateApkFile(null);
+              await setAppUpdate({ version: updateVersion.trim(), apk_url: updateApkUrl.trim(), changelog: updateChangelog.trim(), force_update: updateForce }, profile.id);
               setUpdateApkUrl('');
               setActionMsg('✅ Actualización publicada');
               await loadUpdate();
-            } catch { setActionMsg('❌ Error al subir o guardar'); }
+            } catch { setActionMsg('❌ Error al guardar en Firestore'); }
             setSavingUpdate(false);
-            setUploadingApk(false);
-          }} disabled={!updateVersion.trim() || (!updateApkFile && !updateApkUrl.trim()) || savingUpdate}
+          }} disabled={!updateVersion.trim() || !updateApkUrl.trim() || savingUpdate}
             className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 flex items-center gap-1.5 w-fit">
-            <Save className="w-3.5 h-3.5" /> {uploadingApk ? 'Subiendo APK...' : savingUpdate ? 'Guardando...' : 'Publicar Actualización'}
+            <Save className="w-3.5 h-3.5" /> {savingUpdate ? 'Guardando...' : 'Publicar Actualización'}
           </button>
 
           {appUpdate && (
