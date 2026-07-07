@@ -5,8 +5,6 @@ import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { fetchProfile, createProfile, UserProfile, fetchAppConfig, AppConfig, fetchAppUpdate, AppUpdate, AdminProject } from './lib/firestore';
 import { checkAndAwardAchievements } from './lib/achievementChecker';
 import { initGlobalErrorHandler } from './lib/errorLogger';
-import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
 
 const Home = lazy(() => import('./pages/Home'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -42,7 +40,7 @@ import { isNewerVersion } from './lib/version';
 import { LayoutDashboard, Cpu, User, X, Bot, Home as HomeIcon, Users, Download, Loader } from 'lucide-react';
 import RobotDialog from './components/RobotDialog';
 
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.17.0';
 
 type Page = 'dashboard' | 'learn' | 'inventory' | 'projects' | 'community' | 'achievements' | 'puzzle' | 'settings' | 'admin' | 'calculator' | 'dictionary' | 'assistant' | 'tools' | 'scanner' | 'laboratory' | 'project-detail' | 'home' | 'ewaste' | 'electronics-intro' | 'leaderboard-xp' | 'leaderboard-game' | 'institution' | 'formulas' | 'public-profile' | 'recycling-map';
 
@@ -345,16 +343,8 @@ export default function App() {
                   <div className="flex flex-col gap-2 w-full mt-1">
                     <button onClick={async () => {
                       setDownloading(true);
-                      if (Capacitor.isNativePlatform()) {
-                        Browser.open({ url: appUpdate.apk_url, windowName: '_system' });
-                        setTimeout(() => setDownloading(false), 3000);
-                      } else {
-                        const a = document.createElement('a');
-                        a.href = appUpdate.apk_url;
-                        a.download = `EcoReEngine-v${appUpdate.version}.apk`;
-                        a.click();
-                        setDownloading(false);
-                      }
+                      window.open(appUpdate.apk_url, '_blank');
+                      setDownloading(false);
                     }}
                       className="w-full text-xs font-bold text-white px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-1.5 transition-colors">
                       {downloading ? (

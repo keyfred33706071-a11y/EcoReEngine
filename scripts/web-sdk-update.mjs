@@ -30,16 +30,16 @@ try {
   console.log('Signed in as:', cred.user.uid);
   
   await setDoc(doc(db, 'app_config', 'update'), {
-    version: '1.16',
-    apk_url: 'https://files.catbox.moe/vtw72h.apk',
-    changelog: 'Correcciones de camara, optimizacion, lazy loading, mapa de reciclaje, PowerBulb',
+    version: '1.17.0',
+    apk_url: 'https://files.catbox.moe/ciao3x.apk',
+    changelog: 'Nuevo campo URL en admin panel, descarga directa, correcciones',
     force_update: true,
     updated_at: new Date().toISOString(),
     updated_by: cred.user.uid
   }, { merge: true });
   
   console.log('SUCCESS - Update published!');
-  console.log('Version 1.16 is now forced for all users.');
+  console.log('Version 1.17.0 is now forced for all users.');
 } catch (e) {
   console.log('ERROR:', e.message || e);
 }
