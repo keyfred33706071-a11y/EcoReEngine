@@ -1,6 +1,6 @@
 # EcoReEngine ♻️🔧
 
-**Plataforma educativa de reciclaje electrónico** — Aprende a reutilizar componentes de e-waste para crear nuevos proyectos, conecta con tu centro de reciclaje más cercano y sé parte de una comunidad de ecoingenieros.
+**Plataforma educativa de reciclaje electrónico** — Aprende a reutilizar componentes de e-waste para crear nuevos proyectos, conecta con tu centro de reciclaje más cercano y sé parte de una comunidad de ecoingenieros. Pagina web https://ecoreengine.netlify.app
 
 ## 🚀 Características
 
