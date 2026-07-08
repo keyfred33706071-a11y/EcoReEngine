@@ -32,7 +32,7 @@ try {
   await setDoc(doc(db, 'app_config', 'update'), {
     version: '1.17.0',
     apk_url: 'https://ecoreengine.netlify.app/#actualizar',
-    changelog: '- Descarga dentro de la app con barra de progreso\n- Admin panel: solo campo URL (sin file upload)\n- Corrección de versión (APP_VERSION = 1.17.0)\n- Optimizaciones y limpieza de código',
+    changelog: 'Correcciones de cámara, PowerBulb, lazy loading\n\n⚠️ Después de instalar, cierra la app por completo y ábrela de nuevo para que no vuelva a aparecer el aviso de actualización.',
     force_update: true,
     updated_at: new Date().toISOString(),
     updated_by: cred.user.uid
