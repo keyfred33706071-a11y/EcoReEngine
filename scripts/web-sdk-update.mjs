@@ -31,7 +31,7 @@ try {
   
   await setDoc(doc(db, 'app_config', 'update'), {
     version: '1.17.0',
-    apk_url: 'https://ecoreengine.netlify.app/',
+    apk_url: 'https://ecoreengine.netlify.app/#actualizar',
     changelog: '- Descarga dentro de la app con barra de progreso\n- Admin panel: solo campo URL (sin file upload)\n- Corrección de versión (APP_VERSION = 1.17.0)\n- Optimizaciones y limpieza de código',
     force_update: true,
     updated_at: new Date().toISOString(),
