@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -16,9 +17,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
-      - name: Instalar pnpm
-        run: npm install -g pnpm
+      - name: Activar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Instalar dependencias
         run: pnpm install --no-frozen-lockfile
@@ -34,6 +38,12 @@ jobs:
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            cmdline-tools;latest
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
 
       - name: Sincronizar Capacitor
         run: npx cap sync android
@@ -43,10 +53,11 @@ jobs:
 
       - name: Compilar APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Subir APK como artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
