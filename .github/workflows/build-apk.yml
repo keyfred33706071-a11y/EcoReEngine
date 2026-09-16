@@ -8,10 +8,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+
+      - name: Activar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -19,13 +25,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Activar pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Instalar dependencias
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Construir app web
         run: pnpm run build
@@ -45,6 +46,11 @@ jobs:
             platforms;android-36
             build-tools;36.0.0
 
+      - name: Verificar que exista Android
+        run: |
+          ls -la
+          ls -la android || true
+
       - name: Sincronizar Capacitor
         run: npx cap sync android
 
@@ -54,6 +60,10 @@ jobs:
       - name: Compilar APK
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Verificar salida del APK
+        run: |
+          ls -R android/app/build/outputs/apk/debug || true
 
       - name: Subir APK como artifact
         uses: actions/upload-artifact@v4
