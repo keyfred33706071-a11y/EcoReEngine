@@ -1,74 +1,62 @@
-name: Build APK
+name: Build Android APK
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout código
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Activar pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Configurar Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Comprobar herramientas
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Copy web assets to Android
+        run: npx cap copy android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Generate app icons and splash screens with @capacitor/assets
         run: |
-          node --version
-          npm --version
-          pnpm --version
+          npm install -D @capacitor/assets
+          mkdir -p assets
+          cp public/logo/logo.jpeg assets/logo.png
+          cp public/logo/logo.jpeg assets/splash.png
+          npx capacitor-assets generate --android
 
-      - name: Instalar dependencias
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Construir app web
-        run: pnpm run build
-
-      - name: Configurar Java 21
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
-      - name: Configurar Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            cmdline-tools;latest
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
 
-      - name: Sincronizar Capacitor
-        run: npx cap sync android
-
-      - name: Dar permisos a gradlew
-        run: chmod +x android/gradlew
-
-      - name: Compilar APK
+      - name: Build APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug
 
-      - name: Verificar salida del APK
-        run: |
-          test -f android/app/build/outputs/apk/debug/app-debug.apk
-          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Subir APK como artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: EcoReEngine-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
