@@ -28,11 +28,14 @@ jobs:
       - name: Build web app
         run: npm run build
 
+      - name: Add Android platform
+        run: npx cap add android || true
+
       - name: Copy web assets to Android
-        run: ./node_modules/.bin/cap copy android
+        run: npx cap copy android
 
       - name: Sync Capacitor
-        run: ./node_modules/.bin/cap sync android
+        run: npx cap sync android
 
       - name: Generate app icons and splash screens with @capacitor/assets
         run: |
