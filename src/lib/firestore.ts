@@ -1060,6 +1060,36 @@ export interface AdminLog {
   created_at: string;
 }
 
+export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type SupportTicketPriority = 'low' | 'medium' | 'high';
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email?: string;
+  subject: string;
+  message: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  category: string;
+  created_at: string;
+  updated_at?: string;
+  admin_reply?: string;
+  replied_by?: string;
+  replied_at?: string;
+}
+
+export interface SupportTicketReply {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  user_name: string;
+  message: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
 export async function addAdminLog(action: string, adminName: string, details: string) {
   await addDoc(collection(db, 'admin_logs'), {
     action,
@@ -1078,6 +1108,60 @@ export async function fetchClientErrors(): Promise<any[]> {
   const q = query(collection(db, 'client_errors'), orderBy('timestamp', 'desc'), limit(50));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function createSupportTicket(data: { user_id: string; user_name: string; user_email?: string; subject: string; message: string; category: string; priority?: SupportTicketPriority }) {
+  const ref = await addDoc(collection(db, 'support_tickets'), {
+    user_id: data.user_id || 'anon',
+    user_name: data.user_name || 'Usuario',
+    user_email: data.user_email || '',
+    subject: data.subject,
+    message: data.message,
+    category: data.category,
+    priority: data.priority || 'medium',
+    status: 'open',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  return ref.id;
+}
+
+export async function fetchUserSupportTickets(userId: string): Promise<SupportTicket[]> {
+  const q = query(collection(db, 'support_tickets'), where('user_id', '==', userId), orderBy('created_at', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as SupportTicket));
+}
+
+export async function fetchAllSupportTickets(): Promise<SupportTicket[]> {
+  const q = query(collection(db, 'support_tickets'), orderBy('created_at', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as SupportTicket));
+}
+
+export async function updateSupportTicketStatus(ticketId: string, status: SupportTicketStatus, adminReply?: string, repliedBy?: string) {
+  const updates: any = { status, updated_at: new Date().toISOString() };
+  if (adminReply) {
+    updates.admin_reply = adminReply;
+    updates.replied_by = repliedBy || '';
+    updates.replied_at = new Date().toISOString();
+  }
+  await updateDoc(doc(db, 'support_tickets', ticketId), updates);
+}
+
+export async function addSupportTicketReply(ticketId: string, data: { user_id: string; user_name: string; message: string; is_admin: boolean }) {
+  const ref = await addDoc(collection(db, 'support_tickets', ticketId, 'replies'), {
+    ...data,
+    ticket_id: ticketId,
+    created_at: new Date().toISOString(),
+  });
+  await updateDoc(doc(db, 'support_tickets', ticketId), { updated_at: new Date().toISOString() });
+  return ref.id;
+}
+
+export async function fetchSupportTicketReplies(ticketId: string): Promise<SupportTicketReply[]> {
+  const q = query(collection(db, 'support_tickets', ticketId, 'replies'), orderBy('created_at', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as SupportTicketReply));
 }
 
 export async function awardTutorialXp(userId: string, _tutorialId: string): Promise<void> {

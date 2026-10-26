@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, Search, ShieldCheck, Shield, ShieldX, Crown, ChevronDown, ChevronUp, Edit3, Trash2, MessageSquare, Users, BarChart3, Megaphone, Calendar, Hash, Pin, PinOff, Download, Copy, Clock, Activity, Menu, X, Plus, Save, Gavel, MessageCircle, Bell, Send, Image as ImageIcon, Globe, BookOpen, AlertTriangle, Smartphone, Zap, Star, UserCheck, EyeOff, RefreshCw, UserPlus, Building2 } from 'lucide-react';
+import { ArrowLeft, Search, ShieldCheck, Shield, ShieldX, Crown, ChevronDown, ChevronUp, Edit3, Trash2, MessageSquare, Users, BarChart3, Megaphone, Calendar, Hash, Pin, PinOff, Download, Copy, Clock, Activity, Menu, X, Plus, Save, Gavel, MessageCircle, Bell, Send, Image as ImageIcon, Globe, BookOpen, AlertTriangle, Smartphone, Zap, Star, UserCheck, EyeOff, RefreshCw, UserPlus, Building2, KeyRound, LifeBuoy } from 'lucide-react';
 import { sanitize } from '../lib/sanitize';
-import { UserProfile, UserRole, listAllUsers, setUserVerified, setUserRole, deletePost, permanentDeletePost, deleteComment, fetchAllPosts, fetchComments, CommunityPost, fetchAppConfig, setAppAnnouncement, AppConfig, togglePostPinned, searchUserById, banUser, unbanUser, fetchAdminProjects, createAdminProject, updateAdminProject, deleteAdminProject, AdminProject, sendAdminChatMessage, fetchAdminChatMessages, AdminChatMessage, sendGlobalNotification, fetchGlobalNotifications, GlobalNotification, sendDirectNotification, createAppPost, fetchAppUpdate, setAppUpdate, AppUpdate, fetchAdminLogs, hidePost, unhidePost, updateAppConfig, uploadImage, invalidateCache, DictionaryEntry, fetchDictionaryEntries, createDictionaryEntry, updateDictionaryEntry, deleteDictionaryEntry } from '../lib/firestore';
+import { UserProfile, UserRole, listAllUsers, setUserVerified, setUserRole, deletePost, permanentDeletePost, deleteComment, fetchAllPosts, fetchComments, CommunityPost, fetchAppConfig, setAppAnnouncement, AppConfig, togglePostPinned, searchUserById, banUser, unbanUser, fetchAdminProjects, createAdminProject, updateAdminProject, deleteAdminProject, AdminProject, sendAdminChatMessage, fetchAdminChatMessages, AdminChatMessage, sendGlobalNotification, fetchGlobalNotifications, GlobalNotification, sendDirectNotification, createAppPost, fetchAppUpdate, setAppUpdate, AppUpdate, fetchAdminLogs, hidePost, unhidePost, updateAppConfig, uploadImage, invalidateCache, DictionaryEntry, fetchDictionaryEntries, createDictionaryEntry, updateDictionaryEntry, deleteDictionaryEntry, fetchAllSupportTickets, updateSupportTicketStatus, addSupportTicketReply, SupportTicket, SupportTicketReply, fetchSupportTicketReplies } from '../lib/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import VerifiedBadge from '../components/VerifiedBadge';
 import AdminTools from './admin/AdminTools';
+import { clearApiKey, getApiKey, setApiKey } from '../lib/apiKeys';
 
 interface AdminPageProps {
   profile: UserProfile;
@@ -14,7 +15,7 @@ interface AdminPageProps {
 }
 
 type UserFilter = 'all' | 'admins' | 'mods' | 'verified' | 'new' | 'banned' | 'institutions';
-type AdminSection = 'dashboard' | 'users' | 'posts' | 'announcement' | 'projects' | 'institution-projects' | 'chat' | 'app-post' | 'notify' | 'update' | 'tools' | 'reports' | 'dictionary';
+type AdminSection = 'dashboard' | 'users' | 'posts' | 'announcement' | 'projects' | 'institution-projects' | 'chat' | 'app-post' | 'notify' | 'update' | 'tools' | 'reports' | 'dictionary' | 'apikeys' | 'support';
 
 export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPageProps) {
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard');
@@ -105,6 +106,49 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
   const [dictImageFile, setDictImageFile] = useState<File | null>(null);
   const [dictImagePreview, setDictImagePreview] = useState<string | null>(null);
 
+  // ─── API Keys ───
+  const [groqApiKeyInput, setGroqApiKeyInput] = useState('');
+  const [openRouterApiKeyInput, setOpenRouterApiKeyInput] = useState('');
+  const [googleApiKeyInput, setGoogleApiKeyInput] = useState('');
+  const [apiKeyStatus, setApiKeyStatus] = useState('');
+  const [testingGroqApiKey, setTestingGroqApiKey] = useState(false);
+  const [savingGroqApiKey, setSavingGroqApiKey] = useState(false);
+  const [testingOpenRouterApiKey, setTestingOpenRouterApiKey] = useState(false);
+  const [savingOpenRouterApiKey, setSavingOpenRouterApiKey] = useState(false);
+  const [testingGoogleApiKey, setTestingGoogleApiKey] = useState(false);
+  const [savingGoogleApiKey, setSavingGoogleApiKey] = useState(false);
+
+  // ─── Support ───
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [loadingSupport, setLoadingSupport] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [ticketReplies, setTicketReplies] = useState<SupportTicketReply[]>([]);
+  const [ticketReplyMsg, setTicketReplyMsg] = useState('');
+  const [replyingTicket, setReplyingTicket] = useState(false);
+  const [updatingTicket, setUpdatingTicket] = useState(false);
+
+  useEffect(() => {
+    if (activeSection === 'apikeys') {
+      try {
+        setGroqApiKeyInput(getApiKey());
+      } catch {
+        // ignore
+      }
+      try {
+        const orKey = localStorage.getItem('openrouter_api_key') || '';
+        setOpenRouterApiKeyInput(orKey);
+      } catch {
+        // ignore
+      }
+      try {
+        setGoogleApiKeyInput(localStorage.getItem('google_api_key') || '');
+      } catch {
+        // ignore
+      }
+      setApiKeyStatus('');
+    }
+  }, [activeSection]);
+
   const sortedPosts = useMemo(() => [...posts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)), [posts]);
 
   useEffect(() => {
@@ -113,6 +157,10 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
 
   useEffect(() => {
     if (activeSection === 'dictionary' && dictEntries.length === 0) loadDictionary();
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (activeSection === 'support' && supportTickets.length === 0) loadSupportTickets();
   }, [activeSection]);
 
   useEffect(() => {
@@ -169,6 +217,52 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
     setLoadingDict(true);
     try { setDictEntries(await fetchDictionaryEntries()); } catch {}
     setLoadingDict(false);
+  }
+
+  async function loadSupportTickets() {
+    setLoadingSupport(true);
+    try { setSupportTickets(await fetchAllSupportTickets()); } catch {}
+    setLoadingSupport(false);
+  }
+
+  async function openSupportTicket(ticket: SupportTicket) {
+    setSelectedTicket(ticket);
+    try {
+      const r = await fetchSupportTicketReplies(ticket.id);
+      setTicketReplies(r);
+    } catch { setTicketReplies([]); }
+  }
+
+  async function handleReplySupportTicket() {
+    if (!ticketReplyMsg.trim() || !selectedTicket) return;
+    setReplyingTicket(true);
+    try {
+      await addSupportTicketReply(selectedTicket.id, {
+        user_id: profile.id,
+        user_name: profile.full_name || 'Admin',
+        message: ticketReplyMsg.trim(),
+        is_admin: true,
+      });
+      await updateSupportTicketStatus(selectedTicket.id, 'in_progress', undefined, profile.full_name);
+      setTicketReplyMsg('');
+      const r = await fetchSupportTicketReplies(selectedTicket.id);
+      setTicketReplies(r);
+      loadSupportTickets();
+      setActionMsg('Respuesta enviada');
+    } catch { setActionMsg('Error al responder'); }
+    setReplyingTicket(false);
+  }
+
+  async function handleResolveSupportTicket() {
+    if (!selectedTicket) return;
+    setUpdatingTicket(true);
+    try {
+      await updateSupportTicketStatus(selectedTicket.id, 'resolved', undefined, profile.full_name);
+      loadSupportTickets();
+      setSelectedTicket({ ...selectedTicket, status: 'resolved' });
+      setActionMsg('Ticket marcado como resuelto');
+    } catch { setActionMsg('Error'); }
+    setUpdatingTicket(false);
   }
 
   // ─── Users logic ───
@@ -432,6 +526,8 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
       ...(profile.role === 'owner' ? [{ icon: Smartphone, label: 'Actualizar App', section: 'update' as AdminSection }] : []),
     ]},
     { label: 'Herramientas', items: [
+      ...(profile.role === 'owner' || profile.role === 'admin' ? [{ icon: LifeBuoy, label: 'Soporte', section: 'support' as AdminSection }] : []),
+      ...(profile.role === 'owner' ? [{ icon: KeyRound, label: 'Claves API', section: 'apikeys' as AdminSection }] : []),
       ...(profile.role === 'owner' ? [{ icon: BookOpen, label: 'Diccionario', section: 'dictionary' as AdminSection }] : []),
       ...(profile.role === 'owner' ? [{ icon: Zap, label: 'Herramientas', section: 'tools' as AdminSection }] : []),
       ...(profile.role === 'owner' ? [{ icon: AlertTriangle, label: 'Reportes', section: 'reports' as AdminSection }] : []),
@@ -455,7 +551,375 @@ export default function AdminPage({ profile, onProfileUpdate, onBack }: AdminPag
         : renderDashboard();
       case 'dictionary': return profile.role === 'owner' ? renderDictionary() : renderDashboard();
       case 'reports': return profile.role === 'owner' ? renderReports() : renderDashboard();
+      case 'apikeys': return profile.role === 'owner' ? renderApiKeys() : renderDashboard();
+      case 'support': return (profile.role === 'owner' || profile.role === 'admin') ? renderSupport() : renderDashboard();
     }
+  }
+
+  async function handleTestGroqApiKey() {
+    setTestingGroqApiKey(true);
+    setApiKeyStatus('');
+    try {
+      const key = groqApiKeyInput.trim();
+      if (!key) {
+        setApiKeyStatus('Ingresa una API key de Groq para probar');
+        setTestingGroqApiKey(false);
+        return;
+      }
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
+      });
+      if (res.ok) {
+        setApiKeyStatus('Groq: Conexión exitosa');
+      } else {
+        const text = await res.text().catch(() => '');
+        setApiKeyStatus(`Groq: Error ${res.status} ${text.slice(0, 100)}`);
+      }
+    } catch (err: any) {
+      setApiKeyStatus(`Groq: Error ${err?.message || 'desconocido'}`);
+    } finally {
+      setTestingGroqApiKey(false);
+    }
+  }
+
+  function handleSaveGroqApiKey() {
+    setSavingGroqApiKey(true);
+    try {
+      const key = groqApiKeyInput.trim();
+      if (key) {
+        setApiKey(key);
+        setApiKeyStatus('Groq guardada en localStorage');
+        setActionMsg('Groq API Key guardada');
+      } else {
+        setApiKeyStatus('No hay key de Groq para guardar');
+      }
+    } catch (err: any) {
+      setApiKeyStatus(`Groq: Error ${err?.message || 'desconocido'}`);
+    } finally {
+      setSavingGroqApiKey(false);
+    }
+  }
+
+  function handleClearGroqApiKey() {
+    try {
+      clearApiKey();
+      setGroqApiKeyInput('');
+      setApiKeyStatus('Groq key eliminada');
+      setActionMsg('Groq API Key eliminada');
+    } catch (err: any) {
+      setApiKeyStatus(`Groq: Error ${err?.message || 'desconocido'}`);
+    }
+  }
+
+  async function handleTestOpenRouterApiKey() {
+    setTestingOpenRouterApiKey(true);
+    setApiKeyStatus('');
+    try {
+      const key = openRouterApiKeyInput.trim();
+      if (!key) {
+        setApiKeyStatus('Ingresa una API key de OpenRouter para probar');
+        setTestingOpenRouterApiKey(false);
+        return;
+      }
+      const res = await fetch('https://openrouter.ai/api/v1/models', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
+      });
+      if (res.ok) {
+        setApiKeyStatus('OpenRouter: Conexión exitosa');
+      } else {
+        const text = await res.text().catch(() => '');
+        setApiKeyStatus(`OpenRouter: Error ${res.status} ${text.slice(0, 100)}`);
+      }
+    } catch (err: any) {
+      setApiKeyStatus(`OpenRouter: Error ${err?.message || 'desconocido'}`);
+    } finally {
+      setTestingOpenRouterApiKey(false);
+    }
+  }
+
+  function handleSaveOpenRouterApiKey() {
+    setSavingOpenRouterApiKey(true);
+    try {
+      const key = openRouterApiKeyInput.trim();
+      if (key) {
+        localStorage.setItem('openrouter_api_key', key);
+        setApiKeyStatus('OpenRouter guardada en localStorage');
+        setActionMsg('OpenRouter API Key guardada');
+      } else {
+        setApiKeyStatus('No hay key de OpenRouter para guardar');
+      }
+    } catch (err: any) {
+      setApiKeyStatus(`OpenRouter: Error ${err?.message || 'desconocido'}`);
+    } finally {
+      setSavingOpenRouterApiKey(false);
+    }
+  }
+
+  function handleClearOpenRouterApiKey() {
+    try {
+      localStorage.removeItem('openrouter_api_key');
+      setOpenRouterApiKeyInput('');
+      setApiKeyStatus('OpenRouter key eliminada');
+      setActionMsg('OpenRouter API Key eliminada');
+    } catch (err: any) {
+      setApiKeyStatus(`OpenRouter: Error ${err?.message || 'desconocido'}`);
+    }
+  }
+
+  async function handleTestGoogleApiKey() {
+    setTestingGoogleApiKey(true);
+    setApiKeyStatus('');
+    try {
+      const key = googleApiKeyInput.trim();
+      if (!key) {
+        setApiKeyStatus('Ingresa una API key de Google AI Studio para probar');
+        setTestingGoogleApiKey(false);
+        return;
+      }
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/models', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${key}`,
+        },
+      });
+      if (res.ok) {
+        setApiKeyStatus('Google AI Studio: Conexión exitosa');
+      } else {
+        const text = await res.text().catch(() => '');
+        setApiKeyStatus(`Google AI Studio: Error ${res.status} ${text.slice(0, 100)}`);
+      }
+    } catch (err: any) {
+      setApiKeyStatus(`Google AI Studio: Error ${err?.message || 'desconocido'}`);
+    } finally {
+      setTestingGoogleApiKey(false);
+    }
+  }
+
+  function handleSaveGoogleApiKey() {
+    setSavingGoogleApiKey(true);
+    try {
+      const key = googleApiKeyInput.trim();
+      if (key) {
+        localStorage.setItem('google_api_key', key);
+        setApiKeyStatus('Google AI Studio guardada en localStorage');
+        setActionMsg('Google AI Studio API Key guardada');
+      } else {
+        setApiKeyStatus('No hay key de Google AI Studio para guardar');
+      }
+    } catch (err: any) {
+      setApiKeyStatus(`Google AI Studio: Error ${err?.message || 'desconocido'}`);
+    } finally {
+      setSavingGoogleApiKey(false);
+    }
+  }
+
+  function handleClearGoogleApiKey() {
+    try {
+      localStorage.removeItem('google_api_key');
+      setGoogleApiKeyInput('');
+      setApiKeyStatus('Google AI Studio key eliminada');
+      setActionMsg('Google AI Studio API Key eliminada');
+    } catch (err: any) {
+      setApiKeyStatus(`Google AI Studio: Error ${err?.message || 'desconocido'}`);
+    }
+  }
+
+  function renderSupport() {
+    const statusColors: any = {
+      open: 'text-blue-400 bg-blue-500/10',
+      in_progress: 'text-amber-400 bg-amber-500/10',
+      resolved: 'text-emerald-400 bg-emerald-500/10',
+      closed: 'text-slate-400 bg-slate-500/10',
+    };
+    if (selectedTicket) {
+      return (
+        <div className="space-y-4">
+          <button onClick={() => { setSelectedTicket(null); setTicketReplies([]); }} className="flex items-center gap-2 text-slate-400 hover:text-slate-200">
+            <ArrowLeft className="w-4 h-4" /> Volver a tickets
+          </button>
+          <div className="card space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-100">{selectedTicket.subject}</h3>
+              <span className={`text-xs font-bold px-2 py-1 rounded-lg ${statusColors[selectedTicket.status]}`}>{selectedTicket.status}</span>
+            </div>
+            <p className="text-xs text-slate-500">De: {selectedTicket.user_name} · {new Date(selectedTicket.created_at).toLocaleString('es-ES')} · {selectedTicket.category}</p>
+            <p className="text-sm text-slate-300 whitespace-pre-wrap">{selectedTicket.message}</p>
+            {selectedTicket.status !== 'resolved' && (
+              <button onClick={handleResolveSupportTicket} disabled={updatingTicket} className="text-xs font-bold text-emerald-400 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20">
+                Marcar como resuelto
+              </button>
+            )}
+          </div>
+          <div className="card space-y-3">
+            <h4 className="text-sm font-semibold text-slate-400">Conversación</h4>
+            {ticketReplies.length === 0 ? <p className="text-xs text-slate-500">Sin respuestas</p> : (
+              <div className="space-y-2">
+                {ticketReplies.map(r => (
+                  <div key={r.id} className={`p-3 rounded-xl ${r.is_admin ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-slate-800/50'}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-300">{r.is_admin ? 'Tú (Admin)' : r.user_name}</p>
+                      <p className="text-[10px] text-slate-500">{new Date(r.created_at).toLocaleString('es-ES')}</p>
+                    </div>
+                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{r.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input value={ticketReplyMsg} onChange={(e) => setTicketReplyMsg(e.target.value)} className="input flex-1" placeholder="Responder al usuario..." />
+              <button onClick={handleReplySupportTicket} disabled={replyingTicket || !ticketReplyMsg.trim()} className="btn-primary px-4"><Send className="w-4 h-4" /></button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="card space-y-4">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <LifeBuoy className="w-4 h-4 text-cyan-400" /> Tickets de Soporte
+        </h3>
+        {loadingSupport ? <p className="text-slate-500 text-sm">Cargando...</p> : supportTickets.length === 0 ? <p className="text-slate-500 text-sm">No hay tickets</p> : (
+          <div className="divide-y divide-slate-800">
+            {supportTickets.map(t => (
+              <button key={t.id} onClick={() => openSupportTicket(t)} className="w-full text-left py-3 flex items-center gap-3 hover:bg-slate-800/30 px-2 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-100 truncate">{t.subject}</p>
+                  <p className="text-xs text-slate-500">{t.user_name} · {new Date(t.created_at).toLocaleDateString('es-ES')}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-lg ${statusColors[t.status]}`}>{t.status}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderApiKeys() {
+    return (
+      <div className="card space-y-6">
+        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-emerald-400" />
+          Claves API
+        </h3>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Groq API Key</label>
+            <input
+              type="text"
+              value={groqApiKeyInput}
+              onChange={(e) => setGroqApiKeyInput(e.target.value)}
+              placeholder="gsk_..."
+              className="input w-full text-sm"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Se guarda en localStorage (groq_api_key). Usa getApiKey() con fallback a import.meta.env.VITE_GROQ_API_KEY.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleTestGroqApiKey}
+              disabled={testingGroqApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {testingGroqApiKey ? 'Probando...' : 'Probar'}
+            </button>
+            <button
+              onClick={handleSaveGroqApiKey}
+              disabled={savingGroqApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {savingGroqApiKey ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              onClick={handleClearGroqApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 flex items-center gap-1.5"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-800 pt-4 space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">OpenRouter API Key</label>
+            <input
+              type="text"
+              value={openRouterApiKeyInput}
+              onChange={(e) => setOpenRouterApiKeyInput(e.target.value)}
+              placeholder="sk-or-v1-..."
+              className="input w-full text-sm"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Se guarda en localStorage (openrouter_api_key). Usada por el Scanner y fallback.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleTestOpenRouterApiKey}
+              disabled={testingOpenRouterApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {testingOpenRouterApiKey ? 'Probando...' : 'Probar'}
+            </button>
+            <button
+              onClick={handleSaveOpenRouterApiKey}
+              disabled={savingOpenRouterApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {savingOpenRouterApiKey ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              onClick={handleClearOpenRouterApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 flex items-center gap-1.5"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-800 pt-4 space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Google AI Studio API Key (Chat + Scanner)</label>
+            <input
+              type="text"
+              value={googleApiKeyInput}
+              onChange={(e) => setGoogleApiKeyInput(e.target.value)}
+              placeholder="AQ..."
+              className="input w-full text-sm"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">Se guarda en localStorage (google_api_key). Se usa para EcoBot, Scanner de Componentes, Scanner de Aparato y validación de proyectos.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleTestGoogleApiKey}
+              disabled={testingGoogleApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {testingGoogleApiKey ? 'Probando...' : 'Probar'}
+            </button>
+            <button
+              onClick={handleSaveGoogleApiKey}
+              disabled={savingGoogleApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-1.5"
+            >
+              {savingGoogleApiKey ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              onClick={handleClearGoogleApiKey}
+              className="text-xs font-bold text-white px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 flex items-center gap-1.5"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        {apiKeyStatus && <p className="text-xs text-slate-300">{apiKeyStatus}</p>}
+      </div>
+    );
   }
 
   // ══════════════════════════════════════════════════════════

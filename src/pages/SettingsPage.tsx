@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Bell, ShieldAlert, ShieldCheck, Building2, Check } from 'lucide-react';
+import { Settings, Bell, ShieldAlert, ShieldCheck, Building2, Check, LifeBuoy, MessageCirclePlus } from 'lucide-react';
 import { UserProfile, verifyUser, setUserRole } from '../lib/firestore';
 import { showToast } from '../components/Toast';
 
@@ -104,7 +104,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ profile, onProfileUpdate, o
         </div>
       )}
 
-      {/* Danger Zone */}
+      {/* Zona de Peligro */}
       <div className="card border-red-500/20 bg-red-500/5 space-y-4">
         <h3 className="text-sm font-semibold text-red-400 uppercase tracking-wider flex items-center gap-2">
           <ShieldAlert className="w-4 h-4" />
@@ -113,6 +113,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ profile, onProfileUpdate, o
         <p className="text-xs text-slate-400 leading-relaxed">
           Acciones destructivas que afectan permanentemente tu cuenta y datos.
         </p>
+        <button onClick={() => onNavigate?.('support')} className="btn-secondary border-cyan-500/30 hover:bg-cyan-500/10 text-cyan-400 text-xs py-2 px-4 rounded-xl font-semibold w-full flex items-center justify-center gap-2">
+          <LifeBuoy className="w-4 h-4" />
+          Soporte / Reportar Problema
+        </button>
         <button className="btn-secondary border-red-500/30 hover:bg-red-500/10 text-red-400 text-xs py-2 px-4 rounded-xl font-semibold">
           Restablecer Progreso
         </button>

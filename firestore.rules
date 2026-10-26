@@ -49,6 +49,19 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
 
+    // Un contador solo puede subir o bajar de uno en uno.
+    function stepAtMostOne(before, after) {
+      return before == after || after == before + 1 || after == before - 1;
+    }
+
+    // Un usuario cualquiera solo puede tocar likes_count / comments_count
+    // (así no puede poner 999999 desde la consola del navegador).
+    function countersStepOk() {
+      return onlyFields(['likes_count', 'comments_count'])
+        && stepAtMostOne(resource.data.get('likes_count', 0), request.resource.data.get('likes_count', 0))
+        && stepAtMostOne(resource.data.get('comments_count', 0), request.resource.data.get('comments_count', 0));
+    }
+
     // El usuario no puede tocar sus propios campos privilegiados.
     function privilegedUnchanged() {
       return request.resource.data.get('role', 'user')     == resource.data.get('role', 'user')
@@ -67,9 +80,13 @@ service cloud.firestore {
         && request.resource.data.get('verified', false) == false
         && request.resource.data.get('banned', false) == false;
 
-      // owner/admin editan a cualquiera (roles, bans, verificación).
+      // owner edita a cualquiera. admin edita a usuarios normales, pero NO puede
+      // tocar cuentas owner ni convertir a nadie (ni a sí mismo) en owner.
       // El propio usuario edita su perfil pero NO sus campos privilegiados.
-      allow update: if hasRole(['owner', 'admin'])
+      allow update: if isOwner()
+        || (hasRole(['admin'])
+            && resource.data.get('role', 'user') != 'owner'
+            && request.resource.data.get('role', 'user') != 'owner')
         || (request.auth.uid == userId && privilegedUnchanged());
 
       allow delete: if isOwner();
@@ -106,7 +123,8 @@ service cloud.firestore {
     // ─── Datos propios del usuario ────────────────────────
     match /tutorial_progress/{id} {
       allow read: if isSignedIn();
-      allow write: if isMine('user_id');
+      allow create: if isMine('user_id');
+      allow update, delete: if ownsExisting('user_id');
     }
     match /user_components/{id} {
       allow read: if isSignedIn();
@@ -131,7 +149,7 @@ service cloud.firestore {
       allow create: if isMine('user_id') || isStaff();
       allow update: if ownsExisting('user_id')
         || isStaff()
-        || onlyFields(['likes_count', 'comments_count']);
+        || countersStepOk();
       allow delete: if ownsExisting('user_id') || isStaff();
     }
     match /community_comments/{id} {
@@ -142,7 +160,32 @@ service cloud.firestore {
     match /post_likes/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
-      allow delete: if isSignedIn();
+      // Solo el dueño del like (o staff) puede quitarlo.
+      allow delete: if ownsExisting('user_id') || isStaff();
+    }
+
+    // ─── Diccionario de componentes ───────────────────────
+    match /dictionary/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    // ─── Desafíos entre usuarios ──────────────────────────
+    match /challenges/{id} {
+      // Cada usuario solo ve los desafíos que envió o recibió.
+      allow read: if isSignedIn()
+        && (resource.data.fromUserId == request.auth.uid
+            || resource.data.toUserId == request.auth.uid);
+      // Solo puedes enviar desafíos a nombre propio.
+      allow create: if isSignedIn()
+        && request.resource.data.fromUserId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      // Solo los participantes cambian el estado.
+      allow update: if isSignedIn()
+        && (resource.data.fromUserId == request.auth.uid
+            || resource.data.toUserId == request.auth.uid)
+        && onlyFields(['status', 'completedAt']);
+      allow delete: if false;
     }
 
     // ─── Proyectos curados: ratings y comentarios ─────────
@@ -205,6 +248,17 @@ service cloud.firestore {
     match /client_errors/{id} {
       allow create: if isSignedIn();
       allow read: if isOwner();
+    }
+
+    // ─── Soporte / Tickets ────────────────────────────────
+    match /support_tickets/{ticketId} {
+      allow read: if isSignedIn() && (resource.data.user_id == request.auth.uid || isStaff());
+      allow create: if isSignedIn();
+      allow update: if isStaff() || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      match /replies/{replyId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+      }
     }
 
     // ─── Imágenes de proyectos estáticos (drag & drop) ────

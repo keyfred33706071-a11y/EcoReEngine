@@ -1,8 +1,11 @@
 import { auth } from './firebase';
-import { GROQ_KEY, OR_KEY } from './env';
+import { OR_KEY } from './env';
+import { getApiKey } from './apiKeys';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+const GOOGLE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GOOGLE_NATIVE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 const TIMEOUT_MS = 30000;
 
@@ -42,9 +45,7 @@ const CHAT_SYSTEM_PROMPT =
 const VISION_SYSTEM_PROMPT =
   'Eres un experto en electrónica, reciclaje de e-waste e identificación de componentes. Respondes en español.';
 
-export function getApiKey(): string {
-  try { return localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY || GROQ_KEY; } catch { return GROQ_KEY; }
-}
+// getApiKey moved to ./apiKeys
 
 export function setApiKey(key: string) {
   if (key.startsWith('sk-or')) {
@@ -162,12 +163,28 @@ export async function sendMessage(
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
   const userText = lastUserMsg?.content || '';
 
-  // ── 1. Proxy en Cloud Functions (seguro, recomendado) ──
-  if (usingProxy()) {
-    return apiChat(`${FUNCTIONS_BASE}/chat`, await authHeader(), { messages, stream: !!onStream }, onStream, signal);
+  // ── 1. Google AI Studio (Gemini) - prioridad absoluta ──
+  const googleKey = getGoogleApiKey();
+  try {
+    return await apiChat(GOOGLE_ENDPOINT, { Authorization: `Bearer ${googleKey}` }, {
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...messages],
+      temperature: 0.7,
+      max_tokens: 2048,
+      stream: !!onStream,
+    }, onStream, signal);
+  } catch (e) {
+    console.error('Google AI error:', e);
   }
 
-  // ── 2. Groq (muy rápido, ~300ms primer token) ──
+  // ── 2. Proxy en Cloud Functions (solo si no hay key directa) ──
+  if (usingProxy()) {
+    try {
+      return await apiChat(`${FUNCTIONS_BASE}/chat`, await authHeader(), { messages, stream: !!onStream }, onStream, signal);
+    } catch { /* fallback al siguiente */ }
+  }
+
+  // ── 3. Groq (muy rápido, ~300ms primer token) ──
   const groqKey = getApiKey();
   if (groqKey) {
     try {
@@ -181,12 +198,16 @@ export async function sendMessage(
     } catch { /* fallback al siguiente */ }
   }
 
-  // ── 3. OpenRouter ──
+  // ── 4. OpenRouter ──
   const orKey = getOpenRouterKey();
   if (orKey) {
     try {
-      return await apiChat(OPENROUTER_ENDPOINT, { Authorization: `Bearer ${orKey}` }, {
-        model: 'nvidia/nemotron-nano-12b-v2-vl:free',
+      return await apiChat(OPENROUTER_ENDPOINT, {
+        Authorization: `Bearer ${orKey}`,
+        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173',
+        'X-Title': 'EcoReEngine',
+      }, {
+        model: 'mistralai/mistral-7b-instruct:free',
         messages: [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...messages],
         temperature: 0.7,
         max_tokens: 2048,
@@ -203,6 +224,18 @@ export async function sendMessage(
 
 export function getOpenRouterKey(): string {
   try { return localStorage.getItem('openrouter_api_key') || import.meta.env.VITE_OPENROUTER_API_KEY || OR_KEY; } catch { return OR_KEY; }
+}
+
+export function getGoogleApiKey(): string {
+  try { return localStorage.getItem('google_api_key') || import.meta.env.VITE_GOOGLE_API_KEY || ''; } catch { return ''; }
+}
+
+export function setGoogleApiKey(key: string) {
+  try { localStorage.setItem('google_api_key', key); } catch {}
+}
+
+export function clearGoogleApiKey() {
+  try { localStorage.removeItem('google_api_key'); } catch {}
 }
 
 export function hasOpenRouterKey(): boolean {
@@ -239,11 +272,19 @@ export async function sendVisionMessage(
   prompt: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  if (usingProxy()) {
-    return visionApiCall(`${FUNCTIONS_BASE}/vision`, await authHeader(), '', imageDataUrl, prompt, signal);
+  const googleKey = getGoogleApiKey();
+  try {
+    return await visionApiCall(GOOGLE_ENDPOINT, { Authorization: `Bearer ${googleKey}` }, 'gemini-2.5-flash', imageDataUrl, prompt, signal);
+  } catch (e) {
+    console.error('Google Vision error:', e);
   }
 
-  // 1. Groq (vision model, key tiene créditos)
+  if (usingProxy()) {
+    try {
+      return await visionApiCall(`${FUNCTIONS_BASE}/vision`, await authHeader(), '', imageDataUrl, prompt, signal);
+    } catch { /* fallback */ }
+  }
+
   const groqKey = getApiKey();
   if (groqKey) {
     try {
@@ -251,8 +292,11 @@ export async function sendVisionMessage(
     } catch { /* fallback a OpenRouter */ }
   }
 
-  // 2. OpenRouter
   const orKey = getOpenRouterKey();
   if (!orKey) throw new Error('OPENROUTER_API_KEY_NO_SET');
-  return visionApiCall(OPENROUTER_ENDPOINT, { Authorization: `Bearer ${orKey}` }, 'nvidia/nemotron-nano-12b-v2-vl:free', imageDataUrl, prompt, signal);
+  return visionApiCall(OPENROUTER_ENDPOINT, {
+    Authorization: `Bearer ${orKey}`,
+    'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173',
+    'X-Title': 'EcoReEngine',
+  }, 'google/gemma-2-9b-it:free', imageDataUrl, prompt, signal);
 }

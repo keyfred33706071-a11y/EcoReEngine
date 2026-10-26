@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Sparkles, Calculator, BookOpen, BookMarked, Scan, MapPin } from 'lucide-react';
+import { ArrowLeft, Sparkles, Calculator, BookMarked, Scan, MapPin } from 'lucide-react';
 
 interface ToolsHubProps {
   onSelectTool: (toolPage: string) => void;
@@ -8,13 +8,6 @@ interface ToolsHubProps {
 
 const ToolsHub: React.FC<ToolsHubProps> = ({ onSelectTool, onBack }) => {
   const tools = [
-    {
-      id: 'assistant',
-      name: 'Asistente IA (EcoBot)',
-      desc: 'Orientación en tiempo real y solución de problemas con IA.',
-      icon: Sparkles,
-      color: 'from-violet-500/20 to-purple-600/20 border-violet-500/30 text-violet-400',
-    },
     {
       id: 'calculator',
       name: 'Calculadora de Resistencias',
@@ -35,13 +28,6 @@ const ToolsHub: React.FC<ToolsHubProps> = ({ onSelectTool, onBack }) => {
       desc: 'Ley de Ohm, potencia, resistencias en serie y paralelo.',
       icon: BookMarked,
       color: 'from-amber-500/20 to-yellow-600/20 border-amber-500/30 text-amber-400',
-    },
-    {
-      id: 'dictionary',
-      name: 'Diccionario de Componentes',
-      desc: 'Catálogo interactivo de piezas electrónicas de e-waste.',
-      icon: BookOpen,
-      color: 'from-blue-500/20 to-cyan-600/20 border-blue-500/30 text-blue-400',
     },
     {
       id: 'recycling-map',

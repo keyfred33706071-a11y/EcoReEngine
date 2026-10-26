@@ -4,7 +4,9 @@ import { auth, db } from './lib/firebase';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { fetchProfile, createProfile, UserProfile, fetchAppConfig, AppConfig, fetchAppUpdate, AppUpdate, AdminProject } from './lib/firestore';
 import { checkAndAwardAchievements } from './lib/achievementChecker';
+import { Capacitor } from '@capacitor/core';
 import { initGlobalErrorHandler } from './lib/errorLogger';
+import AdminPanel from './pages/AdminPanel';
 
 const Home = lazy(() => import('./pages/Home'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -31,6 +33,7 @@ const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const InstitutionPage = lazy(() => import('./pages/InstitutionPage'));
 const FormulasPage = lazy(() => import('./pages/FormulasPage'));
 const RecyclingMapPage = lazy(() => import('./pages/RecyclingMapPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
 
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -42,7 +45,7 @@ import RobotDialog from './components/RobotDialog';
 
 const APP_VERSION = '1.17.0';
 
-type Page = 'dashboard' | 'learn' | 'inventory' | 'projects' | 'community' | 'achievements' | 'puzzle' | 'settings' | 'admin' | 'calculator' | 'dictionary' | 'assistant' | 'tools' | 'scanner' | 'laboratory' | 'project-detail' | 'home' | 'ewaste' | 'electronics-intro' | 'leaderboard-xp' | 'leaderboard-game' | 'institution' | 'formulas' | 'public-profile' | 'recycling-map';
+type Page = 'dashboard' | 'learn' | 'inventory' | 'projects' | 'community' | 'achievements' | 'puzzle' | 'settings' | 'admin' | 'calculator' | 'dictionary' | 'assistant' | 'tools' | 'scanner' | 'laboratory' | 'project-detail' | 'home' | 'ewaste' | 'electronics-intro' | 'leaderboard-xp' | 'leaderboard-game' | 'institution' | 'formulas' | 'public-profile' | 'recycling-map' | 'support';
 
 type SelectedProject = { type: 'static'; id: number } | { type: 'admin'; id: string; data: AdminProject };
 
@@ -99,7 +102,7 @@ export default function App() {
     { title: '¡Bienvenido a EcoReEngine!', text: 'Soy ReBot, tu asistente ecológico 🤖♻️\nTe guiaré por la app para que aprendas a reciclar electrónicos y cuides el planeta.', emoji: '👋' },
     { title: 'Inicio', text: 'Aquí verás tu dosis diaria de conciencia ecológica, accesos rápidos y tu progreso general. Es tu centro de comando.', emoji: '🌱', navIndex: 0 },
     { title: 'Proyectos', text: 'Crea proyectos paso a paso con componentes reciclados. Sigue guías prácticas para convertir residuos electrónicos en nuevos inventos.', emoji: '🔧', navIndex: 1 },
-    { title: 'Herramientas', text: 'Calculadora de resistencia, diccionario de componentes, escáner de residuos y el asistente EcoBot para resolver tus dudas.', emoji: '⚡', navIndex: 2 },
+    { title: 'Herramientas', text: 'Calculadora de resistencias, escáner de componentes, fórmulas y mapa de reciclaje. Y en Inicio tienes a EcoBot para resolver tus dudas.', emoji: '⚡', navIndex: 2 },
     { title: 'Comunidad', text: 'Comparte tus proyectos, da like a otros ecoingenieros y aprende de la comunidad porque Todos remamos por un planeta más verde.', emoji: '🌍', navIndex: 3 },
     { title: 'Perfil', text: 'Revisa tus estadísticas, logros, nivel y configuración. Cada proyecto completado suma XP y subes de nivel 🏆', emoji: '🏆', navIndex: 4 },
     { title: '¡Listo!', text: 'Ya conoces lo básico. Explora cada sección, completa proyectos y diviértete aprendiendo. El planeta te lo agradecerá 💚', emoji: '🎉' },
@@ -112,7 +115,10 @@ export default function App() {
         setAuthed(true);
         loadProfile(user.uid);
         fetchAppConfig().then(setAppConfig);
-        fetchAppUpdate().then(setAppUpdate);
+        // El aviso de "nueva versión / descargar APK" solo aplica a la app Android.
+        // En la web (Vercel) se cargaría como un modal de actualización que no
+        // tiene sentido y podría bloquear al jurado.
+        if (Capacitor.isNativePlatform()) fetchAppUpdate().then(setAppUpdate);
         if (!localStorage.getItem('eco_onboarding_done')) {
           setShowOnboarding(true);
         }
@@ -274,6 +280,11 @@ export default function App() {
     });
   }
 
+  // Ruta /admin protegida
+  if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
+    return <AdminPanel />;
+  }
+
   const renderPage = () => {
     switch (page) {
       case 'home': return <Home onNavigate={navigate} userId={profile.id} />;
@@ -287,7 +298,7 @@ export default function App() {
       case 'achievements': return <AchievementsPage userId={profile.id} profile={profile} />;
       case 'puzzle': return <PuzzlePage userId={profile.id} onXpGained={refreshProfile} onNavigate={navigate} />;
       case 'calculator': return <Calculadora onBack={() => setPage('tools')} />;
-      case 'dictionary': return <Diccionario onBack={() => setPage('tools')} userId={profile.id} />;
+      case 'dictionary': return <Diccionario onBack={() => setPage('home')} userId={profile.id} />;
       case 'assistant': return null;
       case 'tools': return <ToolsHub onSelectTool={(toolPage) => navigate(toolPage)} onBack={() => navigate('home')} />;
       case 'laboratory': return <Laboratorio onSelectProject={(p) => { setSelectedProject(p); setPage('project-detail'); }} userId={profile.id} savedScrollY={labScrollY} onSaveScroll={setLabScrollY} />;
@@ -300,15 +311,16 @@ export default function App() {
       case 'formulas': return <FormulasPage onBack={() => setPage('tools')} />;
       case 'scanner': return <ScannerPage onBack={() => setPage('tools')} />;
       case 'recycling-map': return <RecyclingMapPage onBack={() => setPage('home')} />;
+      case 'support': return <SupportPage profile={profile} onBack={() => setPage('settings')} />;
       case 'public-profile': return selectedUserId ? <PublicProfilePage userId={selectedUserId} onBack={() => setPage('community')} /> : null;
       default: return <Home userId={profile.id} />;
     }
   };
 
    return (
-     <div key={resetKey} className={`${isDark ? 'dark' : 'light'} min-h-screen ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'} flex flex-col`}>
+     <div key={resetKey} className={`${isDark ? 'dark' : 'light'} min-h-[100dvh] ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'} flex flex-col`}>
        <Sidebar currentPage={page} onNavigate={navigate} profile={profile} onSignOut={handleSignOut} />
-       <div className="lg:ml-64 min-h-screen flex flex-col pt-14 sm:pt-16">
+       <div className="lg:ml-64 min-h-[100dvh] flex flex-col pt-14 sm:pt-16">
         <Header currentPage={page} onNavigate={navigate} profile={profile} />
         {appConfig?.announcement_enabled && appConfig.announcement && (
           <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 lg:px-8 py-2.5 text-center">
@@ -364,9 +376,14 @@ export default function App() {
           );
         })()}
         {page !== 'assistant' && (
-          <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 pb-36 lg:pb-6 max-w-7xl w-full mx-auto">
+          <main
+            className={`flex-1 px-4 lg:px-8 py-4 lg:py-6 max-w-7xl w-full mx-auto ${
+              page === 'home' ? 'flex flex-col min-h-0' : 'pb-36 lg:pb-6'
+            }`}
+            style={page === 'home' ? { paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' } : undefined}
+          >
             <Suspense fallback={<div className="flex items-center justify-center h-40"><p className="text-slate-400 text-sm">Cargando...</p></div>}>
-              <div className={`transition-all duration-300 ease-out ${transitioning ? 'opacity-0 translate-y-2 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}>
+              <div className={`${page === 'home' ? 'flex-1 min-h-0 flex flex-col' : ''} transition-all duration-300 ease-out ${transitioning ? 'opacity-0 translate-y-2 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'}`}>
                 {renderPage()}
               </div>
             </Suspense>
@@ -387,7 +404,7 @@ export default function App() {
                 <p className="text-[10px] text-emerald-400 font-medium">En línea</p>
               </div>
             </div>
-            <button onClick={() => setPage('tools')} className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors">
+            <button onClick={() => setPage('home')} className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-colors">
               <X className="w-5 h-5" />
             </button>
           </header>

@@ -21,6 +21,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+
+# Scripts de prueba locales con API keys (no subir)
+test_g.*
 
 android/app/build/
 
